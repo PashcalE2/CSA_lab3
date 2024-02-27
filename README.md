@@ -1,53 +1,192 @@
-# Brainfuck. Транслятор и модель
+# Отчёт
 
-- Преподаватели, Пенской Александр Владимирович.
-- `brainfuck | bf | harv | hw | instr | struct | stream | port | - | - | -`
-
-Примечания:
-
-- Данный проект имеет избыточное количество комментариев (к примеру, схемы продублированы в исходном коде для удобства читателя).
-    - Более того, такое количество комментариев затруднит проверку вашей работы.
-- Данный проект предпочитает простоту элегантности, так как является учебным примером. Там, где можно написать без синтаксического сахара -- написано без него.
-- MR приветствуются, но должны учитывать вышесказанное.
-- Данный проект не является обязательным шаблоном, и вы можете использовать другую структуру проекта. При этом нагромождения модулей и классов следует избегать. Будьте проще.
-- Данный проект не может претендовать на высший балл, т.к.:
-    - только интеграционные тесты;
-    - проигнорированы важные возможности python 3.6+ (типизация);
-    - простой вариант без усложнений;
-    - плохой CLI (всё прибито гвоздями, нет помощи, нет управления уровнем журналов);
-    - как минимум одна глупость в работе ControlUnit (умышленно сохранена).
-- Указанный выше вариант -- вымышленный.
-- Задание на лабораторную работу: [lab3-task.md](/lab3-task.md).
+- P33151, Шипулин Павел Андреевич.
+- `asm | cisc | neum | hw | instr | binary | trap | mem | cstr | prob2 | spi`
+- без усложнения
 
 ## Язык программирования
 
+###Описание синтаксиса
+Надо бы еще секции (`<section>`) подкорректировать, в интернете написано, что там разные секции есть...
 ``` ebnf
-program ::= term
+<asm_program> ::= 
+    <spaces> | 
+    <new_line> | 
+    <section> <empty_string> | 
+    <variable> <empty_string> | 
+    <instruction> <empty_string> | 
+    <asm_program> <asm_program>
 
-term ::= symbol
-       | comment
-       | term term
-       | "[" term "]"
+<empty_string> ::= <new_line> | <spaces> <empty_string>
 
-symbol ::= ">" | "<" | "+" | "-" | "." | ","
+<section> ::= "section" <spaces> "." <section_without_prefix>
+<section_without_prefix> ::= "data" | "text"
 
-comment ::= <any symbols except: "><+-.,[]">
+<instruction> ::= 
+    <instruction_label> | 
+    <mnemonic> | 
+    <instruction_label> <spaces> <mnemonic> | 
+    <mnemonic> <spaces> <operands> | 
+    <instruction_label> <spaces> <mnemonic> <spaces> <operands> | 
+    <instruction> <spaces> <comment> | 
+    <spaces> <instruction> 
+
+<mnemonic> ::= "ВСЕ КОМАНДЫ СЮДА ВПИСАТЬ"
+<comment> ::= ";" <characters>
+
+<operands> ::= <operand> | <operands> <listing_separator> <operand>
+<operand> ::= <register> | <mem_addressing> | <math_expression> | <complex_label>
+
+<mem_addressing> ::= "[" <math_expression> "]" | "~[" <math_expression> "]"
+
+<math_expression> ::= 
+    <register> | 
+    <number> | 
+    <spaces> <math_expression> | 
+    <math_expression> <spaces> | 
+    <math_expression> <math_operation> <math_expression> | 
+    "(" <math_expression> ")"
+
+<math_operation> ::= "+" | "-" | "*" | "/"
+
+<variable> ::= <data_label> <spaces> <data_pseudo_command>
+<data_pseudo_command> ::= 
+    <reserve> | 
+    <define> | 
+    "times" <spaces> <uint> <spaces> <data_pseudo_command>
+
+<define> ::= <define_command> <spaces> <array_init>
+<define_command> ::= "db" | "dw" | "dd"
+
+<reserve> ::= <reserve_command> <spaces> <uint>
+<reserve_command> ::= "resb" | "resw" | "resd"
+
+<array_init> ::= 
+    <int_sequence> | 
+    <double_sequence> | 
+    <string_sequence> | 
+    <array_init> <listing_separator> <int_sequence> | 
+    <array_init> <listing_separator> <string_sequence>
+
+<int_sequence> ::= <int> | <int_sequence> <listing_separator> <int>
+<double_sequence> ::= <double> | <double_sequence> <listing_separator> <double>
+<string_sequence> ::= <string> | <string_sequence> <listing_separator> <string>
+<listing_separator> ::= "," | <spaces> "," | "," <spaces> | <spaces> "," <spaces>
+
+<data_label> ::= <name_word> | <instruction_label>
+<instruction_label> ::= <complex_label> ":"
+
+<complex_label> ::= <single_label> | <relative_label> | <complex_label> <relative_label>
+<relative_label> ::= "." <single_label>
+<single_label> ::= <name_word> | "_" <name_word>
+
+<register> ::= 
+    "rpc" | "rdi" | "rsi" | "rax" | 
+    "rcx" | "rdx" | "rsp" | "r1" | 
+    "r2" | "r3" | "r4" | "r5" | 
+    "r6" | "r7" | "r8"
+
+<string> ::= 
+    <special_quote> <string_without_special_quote> <special_quote> | 
+    <single_quote> <string_without_single_quote> <single_quote> | 
+    <double_quote> <string_without_double_quote> <double_quote>
+
+<string_without_special_quote> ::= 
+    <character> | 
+    <double_quote> | 
+    <single_quote> | 
+    <string_without_special_quote> <string_without_special_quote>
+
+<string_without_double_quote> ::= 
+    <character> | 
+    <special_quote> | 
+    <single_quote> | 
+    <string_without_double_quote> <string_without_double_quote>
+
+<string_without_single_quote> ::= 
+    <character> |  
+    <special_quote> | 
+    <double_quote> | 
+    <string_without_single_quote> <string_without_single_quote>
+
+<special_quote> ::= "`"
+<double_quote> ::= "\""
+<single_quote> ::= "'"
+<special_char> ::= <backslash> <letter>
+<char_by_dec_uint> ::= <backslash> <dec_uint>
+
+<name_word> ::= <letter> | <letter> <name_word> | <name_word> <letter> | <name_word> <dec_digit>
+<characters> ::= <character> | <characters> <character>
+<character> ::= <letter> | <dec_digit> | <symbol>
+<symbol> ::= 
+    <space> | <backslash> | "!" | 
+    "@" | "#" | "$" | "%" | 
+    "^" | "&" | "*" | "-" | 
+    "+" | "," | "." | ";" | 
+    ":" | "?" | "_" | "=" | 
+    "(" | ")" | "[" | "]" | 
+    "{" | "}" | "|" | "/"
+
+<spaces> ::= <space> | <spaces> <space>
+<space> ::= " " | "\t"
+
+<new_line> ::= "\n"
+
+<backslash> ::= "\\"
+<letter> ::= 
+    "A" | "B" | "C" | "D" | "E" | "F" | 
+    "G" | "H" | "I" | "J" | "K" | "L" | 
+    "M" | "N" | "O" | "P" | "Q" | "R" | 
+    "S" | "T" | "U" | "V" | "W" | "X" | 
+    "Y" | "Z" | "a" | "b" | "c" | "d" | 
+    "e" | "f" | "g" | "h" | "i" | "j" | 
+    "k" | "l" | "m" | "n" | "o" | "p" | 
+    "q" | "r" | "s" | "t" | "u" | "v" | 
+    "w" | "x" | "y" | "z"
+
+<number> ::= <int> | <double>
+<int> ::= <bin_int> | <dec_int> | <hex_int>
+<uint> ::= <bin_uint> | <dec_uint> | <hex_uint>
+
+<hex_int> ::= <hex_uint> | "-" <hex_uint>
+<hex_uint> ::= "0x" <hex_uint_without_prefix> 
+<hex_uint_without_prefix> ::= <hex_digit> | <hex_digit> <hex_uint_without_prefix>
+<hex_digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "A" | "B" | "C" | "D" | "E" | "F" | "a" | "b" | "c" | "d" | "e" | "f"
+
+<double> ::= <dec_digit> "." <dec_uint> "e" <dec_int> | "-" <dec_digit> "." <dec_uint> "e" <dec_int>
+<dec_int> ::= <dec_uint> | "-" <dec_uint>
+<dec_uint> ::= <dec_digit> | <dec_digit> <dec_uint>
+<dec_digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+
+<bin_int> ::= <bin_uint> | "-" <bin_uint>
+<bin_uint> ::= "b" <bin_uint_without_prefix>
+<bin_uint_without_prefix> ::= <bin_digit> | <bin_digit> <bin_uint_without_prefix>
+<bin_digit> ::= "0" | "1"
 ```
 
-Код выполняется последовательно. Операции:
+### Описание семантики
 
-- `+` -- увеличить значение в текущей ячейке на 1
-- `-` -- уменьшить значение в текущей ячейке на 1
-- `>` -- перейти к следующей ячейке
-- `<` -- перейти к предыдущей ячейке
-- `.` -- напечатать значение из текущей ячейки (символ)
-- `,` -- ввести извне значение и сохранить в текущей ячейке (символ)
-- `[` -- если значение текущей ячейки ноль, перейти вперёд по тексту программы на символ, следующий за соответствующей `]` (с учётом вложенности)
-- `]` -- если значение текущей ячейки не ноль, перейти назад по тексту программы на символ `[` (с учётом вложенности)
+Код выполняется с метки `start`, так что её присутствие обязательно для запуска программы.
 
-Любые другие символы трактуются как комментарии.
+- перечисление всех команд, ключевых слов видимо... 
 
-Память выделяется статически, при запуске модели. Видимость данных -- глобальная. Поддержка литералов -- отсутствует.
+Любые символы после `;` трактуются как комментарий в строке (многострочных комментариев нет)
+
+Память выделяется в соответствии с указанными в коде директивами `org`:
+
+- `org <число>` -- разместить следующий байт-код по этом адресу
+
+или "локально" с помощью команд для работы со стеком:
+- `push <регистр / память / литерал>` -- добавляет на стек значение выражения, смещает стековый указатель
+- `pop <регистр / память>` -- возвращает значение со стека, смещает указатель на стек
+
+Литералы:
+- целое число
+  - десятичный (`009128738912`)
+  - шестнадцатеричный (`0x0000000012312312332312323`)
+- строка
+  - `<строка>`
+  - (слово)
 
 ## Организация памяти
 
@@ -57,6 +196,27 @@ comment ::= <any symbols except: "><+-.,[]">
 2. Память данных. Машинное слово -- 8 бит, знаковое. Линейное адресное пространство. Реализуется списком чисел.
 
 В связи с отсутствием на уровне языка переменных, констант, литералов и т.д., описание механизмов работы с ними -- отсутствует. Содержание раздела -- смотри в задании.
+
+Данный раздел является сквозным по отношению к работе и должен включать:
+- модель памяти процессора, размеры машинного слова, варианты адресации;
+- механику отображения программы и данных на процессор.
+
+Модель памяти должна включать:
+- Какие виды памяти и регистров доступны программисту?
+- Где хранятся инструкции, процедуры и прерывания?
+- Где хранятся статические и динамические данные?
+
+А также данный раздел должен включать в себя описание того, как происходит работа с 1) литералами, 2) константами, 3) переменными, 4) инструкциями, 5) процедурами, 6) прерываниями во время компиляции и исполнения. К примеру:
+
+В каких случаях литерал будет использован при помощи непосредственной адресации?
+В каких случаях литерал будет сохранён в статическую память?
+Как будут размещены литералы, сохранённые в статическую память, друг относительно друга?
+Как будет размещаться в память литерал, требующий для хранения несколько машинных слов?
+В каких случаях переменная будет отображена на регистр?
+Как будет разрешаться ситуация, если регистров недостаточно для отображения всех переменных?
+В каких случаях переменная будет отображена на статическую память?
+В каких случаях переменная будет отображена на стек?
+И так далее по каждому из пунктов в зависимости от варианта...
 
 ## Система команд
 
@@ -113,7 +273,7 @@ comment ::= <any symbols except: "><+-.,[]">
 - `arg` -- аргумент (может отсутствовать);
 - `term` -- информация о связанном месте в исходном коде (если есть).
 
-Типы данных в модуле [isa](./isa.py), где:
+Типы данных в модуле [isa](p_isa.py), где:
 
 - `Opcode` -- перечисление кодов операций;
 - `Term` -- структура для описания значимого фрагмента кода исходной программы.
@@ -122,7 +282,7 @@ comment ::= <any symbols except: "><+-.,[]">
 
 Интерфейс командной строки: `translator.py <input_file> <target_file>`
 
-Реализовано в модуле: [translator](./translator.py)
+Реализовано в модуле: [translator](p_translator.py)
 
 Этапы трансляции (функция `translate`):
 
@@ -149,7 +309,7 @@ comment ::= <any symbols except: "><+-.,[]">
 
 Интерфейс командной строки: `machine.py <machine_code_file> <input_file>`
 
-Реализовано в модуле: [machine](./machine.py).
+Реализовано в модуле: [machine](p_machine.py).
 
 ### DataPath
 
@@ -267,10 +427,10 @@ comment ::= <any symbols except: "><+-.,[]">
 
 В качестве тестов использовано два алгоритма (в задании 3 + алгоритм по варианту):
 
-1. [hello world](examples/hello.bf).
-2. [cat](examples/cat.bf) -- программа `cat`, повторяем ввод на выводе.
+1. [hello world](p_examples/hello.bf).
+2. [cat](p_examples/cat.bf) -- программа `cat`, повторяем ввод на выводе.
 
-Интеграционные тесты реализованы тут [integration_test](./integration_test.py) в двух вариантах:
+Интеграционные тесты реализованы тут [integration_test](p_integration_test.py) в двух вариантах:
 
 - через golden tests, конфигурация которых лежит в папке [golden](./golden) (требуются по заданию).
 - через unittest (приведён как **устаревший** пример).

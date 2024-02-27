@@ -19,9 +19,9 @@ import os
 import tempfile
 import unittest
 
-import machine
+import p_machine
 import pytest
-import translator
+import p_translator
 
 
 @pytest.mark.golden_test("golden/*.yml")
@@ -74,9 +74,9 @@ def test_translator_and_machine(golden, caplog):
         # Запускаем транслятор и собираем весь стандартный вывод в переменную
         # stdout
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
-            translator.main(source, target)
+            p_translator.main(source, target)
             print("============================================================")
-            machine.main(target, input_stream)
+            p_machine.main(target, input_stream)
 
         # Выходные данные также считываем в переменные.
         with open(target, encoding="utf-8") as file:
@@ -98,36 +98,36 @@ class TestTranslatorAndMachine(unittest.TestCase):
     def test_hello_example(self):
         # Создаём временную папку для скомпилированного файла. Удаляется автоматически.
         with tempfile.TemporaryDirectory() as tmpdirname:
-            source = "examples/hello.bf"
-            target = os.path.join(tmpdirname, "machine_code.out")
-            input_stream = "examples/input.txt"
+            source = "p_examples/hello.bf"
+            target = os.path.join(tmpdirname, "asm.out")
+            input_stream = "p_examples/input.txt"
 
             # Собираем весь стандартный вывод в переменную stdout.
             with contextlib.redirect_stdout(io.StringIO()) as stdout:
-                translator.main(source, target)
-                machine.main(target, input_stream)
+                p_translator.main(source, target)
+                p_machine.main(target, input_stream)
 
             # Проверяем, что было напечатано то, что мы ожидали.
             assert (
                 stdout.getvalue()
-                == "source LoC: 357 code instr: 131\nHello World!\n\ninstr_counter:  987 ticks: 1532\n"
+                == "source LoC: 357 prob2.txt instr: 131\nHello World!\n\ninstr_counter:  987 ticks: 1532\n"
             )
 
     def test_cat_example(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
-            source = "examples/cat.bf"
-            target = os.path.join(tmpdirname, "machine_code.out")
-            input_stream = "examples/input.txt"
+            source = "p_examples/cat.bf"
+            target = os.path.join(tmpdirname, "asm.out")
+            input_stream = "p_examples/input.txt"
 
             with contextlib.redirect_stdout(io.StringIO()) as stdout:
                 # Собираем журнал событий по уровню INFO в переменную logs.
                 with self.assertLogs("", level="INFO") as logs:
-                    translator.main(source, target)
-                    machine.main(target, input_stream)
+                    p_translator.main(source, target)
+                    p_machine.main(target, input_stream)
 
             assert (
                 stdout.getvalue()
-                == "source LoC: 1 code instr: 6\nHello World from input!\n\ninstr_counter:  95 ticks: 168\n"
+                == "source LoC: 1 prob2.txt instr: 6\nHello World from input!\n\ninstr_counter:  95 ticks: 168\n"
             )
 
             assert logs.output == [
@@ -137,16 +137,16 @@ class TestTranslatorAndMachine(unittest.TestCase):
 
     def test_cat_example_log(self):
         with tempfile.TemporaryDirectory() as tmpdirname:
-            source = "examples/cat.bf"
-            target = os.path.join(tmpdirname, "machine_code.out")
-            input_stream = "examples/foo_input.txt"
+            source = "p_examples/cat.bf"
+            target = os.path.join(tmpdirname, "asm.out")
+            input_stream = "p_examples/foo_input.txt"
 
             with contextlib.redirect_stdout(io.StringIO()) as stdout:
                 with self.assertLogs("", level="DEBUG") as logs:
-                    translator.main(source, target)
-                    machine.main(target, input_stream)
+                    p_translator.main(source, target)
+                    p_machine.main(target, input_stream)
 
-            assert stdout.getvalue() == "source LoC: 1 code instr: 6\nfoo\n\ninstr_counter:  15 ticks: 28\n"
+            assert stdout.getvalue() == "source LoC: 1 prob2.txt instr: 6\nfoo\n\ninstr_counter:  15 ticks: 28\n"
 
             expect_log = [
                 "DEBUG:root:TICK:   0 PC:   0 ADDR:   0 MEM_OUT: 0 ACC: 0 \tinput  (','@1:1)",

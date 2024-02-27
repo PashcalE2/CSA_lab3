@@ -1,0 +1,62 @@
+section data
+    limit w 4000000
+
+section code
+
+global _start
+
+_start:
+    mov rcx, 1
+    mov rdx, 2
+    mov r8, 2
+    xor rax, rax
+
+.sum:
+    mov r9, r8
+    and r9, 1
+    cmp r9, 0
+    jnz .loop
+    add rax, r8
+.loop:
+    add r8, rcx
+    mov rcx, rdx
+    mov rdx, r8
+    cmp r8, limit
+    jle .sum
+
+.uint_to_string:
+    mov rax, r8
+    mov r8, 10
+
+    push rbx
+    mov rbx, rsp
+
+    dec rsp ; string-end
+    mov byte[rsp], 0 ; null-terminator
+
+.uint_to_string.loop:
+    dec rsp
+    xor rdx, rdx
+    div r8
+    add rdx, '0'
+    mov byte[rsp], dl
+
+    cmp rax, 0
+    jg .loop
+
+.ans:
+    mov rsi, rsp
+    mov rsp, rbx
+    pop rbx
+
+.print_string:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, rdi
+    mov rdx, 13
+    syscall
+
+    mov rax, 60
+    mov rdi, 0
+    syscall
+

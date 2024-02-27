@@ -1,10 +1,27 @@
 #!/usr/bin/python3
-"""Транслятор asm в машинный код.
+"""Транслятор brainfuck в машинный код.
 """
 
-
 import sys
-from isa import write_code
+
+from p_isa import Opcode, Term, write_code
+
+
+def symbols():
+    """Полное множество символов языка brainfuck."""
+    return {"<", ">", "+", "-", ",", ".", "[", "]"}
+
+
+def symbol2opcode(symbol):
+    """Отображение операторов исходного кода в коды операций."""
+    return {
+        "<": Opcode.LEFT,
+        ">": Opcode.RIGHT,
+        "+": Opcode.INC,
+        "-": Opcode.DEC,
+        ",": Opcode.INPUT,
+        ".": Opcode.PRINT,
+    }.get(symbol)
 
 
 def text2terms(text):
@@ -83,10 +100,10 @@ def main(source, target):
     code = translate(source)
 
     write_code(target, code)
-    print("source LoC:", len(source.split()), "code instr:", len(code))
+    print("source LoC:", len(source.split()), "prob2.txt instr:", len(code))
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) == 3, "Wrong arguments: translator.py <input_file> <target_file>"
+    assert len(sys.argv) == 3, "Wrong arguments: p_translator.py <input_file> <target_file>"
     _, source, target = sys.argv
     main(source, target)

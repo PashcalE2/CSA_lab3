@@ -1,0 +1,29 @@
+org 0
+v0: word _int0, 0x160
+word _int1, 0x170123123123
+
+org 0x10
+array: word 0, 0, 0, 0
+
+org 0x20
+start:
+    mov Ax,0x12312321312325555 ; abcde
+    mov [Ax],ax ;;;;;
+    mov byte [array+ax*2+bx], ax
+    mov cx, ax
+    mul ax, 2
+    add ax, bx
+    add ax, array
+    mov [ax], cx
+    jmp start
+    halt
+
+org 0x100
+_int0:
+.start:
+    byte 0x100 dup (0)
+
+org 0x200
+_int1:
+.start:
+    halt
