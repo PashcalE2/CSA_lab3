@@ -72,9 +72,9 @@ def test_translator_and_machine(golden, caplog):
             print("============================================================")
             machine.main(target, input_stream)
 
-        with open(target, encoding="utf-8") as file:
+        with open(target + ".debug", encoding="utf-8") as file:
             code = file.read()
 
-        assert code == golden.out["out_code"]
+        assert code == golden.out["out_code_debug"]
         assert stdout.getvalue() == golden.out["out_stdout"]
         assert caplog.text == golden.out["out_log"]

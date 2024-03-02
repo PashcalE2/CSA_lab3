@@ -1183,10 +1183,10 @@ class ControlUnit:
             # DR => MEM[SP]
             self.write_to_stack(InstructionPrefix.WORD)
 
-            # AC => AR
+            # AC => IP
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_or()
-            self.data_path.signal_latch_ar()
+            self.data_path.signal_latch_ip()
             return
         elif opcode == InstructionSet.INT.opcode:
             self.decode_instruction_arg_source(directive, to_ac=1)
@@ -1663,9 +1663,7 @@ def main(code_file, input_file):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
-    # assert len(sys.argv) == 3, "Wrong arguments: p_machine.py <code_file> <input_file>"
-    # _, code_file, input_file = sys.argv
-
-    code_file, input_file = "byte_code/cat.o", "input/input.txt"
+    assert len(sys.argv) == 3, "Wrong arguments: p_machine.py <code_file> <input_file>"
+    _, code_file, input_file = sys.argv
 
     main(code_file, input_file)

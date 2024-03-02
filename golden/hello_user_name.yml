@@ -2,8 +2,8 @@ in_source: |-
   a
 
 in_stdin: |-
-  a
-out_code: |-
+  ./input/hello_user_name.txt
+out_code_debug: |-
   a
 out_stdout: |
   a

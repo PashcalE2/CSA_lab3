@@ -582,7 +582,7 @@ def get_meaningful_token(line):
     return line.split(";", 1)[0].strip()
 
 
-def translate_stage_1(text):
+def translate_stage_1(text, print_err):
     """
     Первый проход транслятора.
     Преобразование текста программы в список организации памяти, инструкций и размещений данных.
@@ -626,7 +626,7 @@ def translate_stage_1(text):
                 label, last_root_label = check_new_label(label, last_root_label)
 
                 code.append({"mem_address": 0, "label": label, "term": Term(line_num, token)})
-                print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
+                # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
             except Exception as e:
                 pass
@@ -637,10 +637,11 @@ def translate_stage_1(text):
             # следующий байт-код будет иметь этот адрес
             mem_address, base = str_to_number(mem_address)
             code.append({"mem_address": mem_address, "is_org": True, "term": Term(line_num, token)})
-            print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
+            # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
             continue
         except Exception as e:
-            print("Ошибка при проверке `org`: {}".format(e))
+            if print_err:
+                print("Ошибка при проверке `org`: {}".format(e))
 
         try:
             # это размещение данных в памяти?
@@ -681,10 +682,11 @@ def translate_stage_1(text):
             term_mnemonic += ", ".join(args)
 
             code.append({"mem_address": 0, "is_data": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
-            print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
+            # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
             continue
         except Exception as e:
-            print("Ошибка при проверки размещения данных: {}".format(e))
+            if print_err:
+                print("Ошибка при проверки размещения данных: {}".format(e))
 
         try:
             # это инструкция?
@@ -748,10 +750,11 @@ def translate_stage_1(text):
             term_mnemonic += ", ".join(args)
 
             code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
-            print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
+            # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
             continue
         except Exception as e:
-            print("Ошибка при проверке инструкции: {}".format(e))
+            if print_err:
+                print("Ошибка при проверке инструкции: {}".format(e))
 
         raise Exception("не пойми что написано")
 
@@ -861,7 +864,7 @@ def translate_stage_4(code):
     return code
 
 
-def translate(text):
+def translate(text, print_err):
     """Трансляция текста программы на Asm в машинный код.
 
     Выполняется в 4 прохода:
@@ -874,7 +877,7 @@ def translate(text):
 
     4. Проверка перекрытия данных/кода друг друга
     """
-    labels, code = translate_stage_1(text)
+    labels, code = translate_stage_1(text, print_err)
     labels, code = translate_stage_2(labels, code)
     code = translate_stage_3(labels, code)
     code = translate_stage_4(code)
@@ -882,20 +885,20 @@ def translate(text):
     return labels["start"], code
 
 
-def main(source, target):
+def main(source, target, print_err=False):
     """Функция запуска транслятора. Параметры -- исходный и целевой файлы."""
     with open(source, encoding="utf-8") as f:
         source = f.read().lower()
 
-    start_address, code = translate(source)
+    start_address, code = translate(source, print_err)
 
     ByteCodeFile.write(target, start_address, code)
     ByteCodeFile.write_debug(target + ".debug", start_address, code)
 
-    print("Количество строк исходного кода: {}\nКоличество строк тела объектного файла: {}".format(len(source.split("\n")), len(code)))
+    # print("Количество строк исходного кода: {}\nКоличество строк тела объектного файла: {}".format(len(source.split("\n")), len(code)))
 
 
 if __name__ == "__main__":
-    # assert len(sys.argv) == 3, "Wrong arguments: translator_asm.py <input_file> <target_file>"
+    assert len(sys.argv) == 3, "Wrong arguments: translator_asm.py <input_file> <target_file>"
     _, source, target = sys.argv
     main(source, target)

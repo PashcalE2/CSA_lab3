@@ -1,7 +1,0 @@
-
-data: word 0x0001
-
-start:
-    lcomb [data], r2, 3, 4, 5
-    mov r1, '12345'
-    halt

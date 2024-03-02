@@ -1,0 +1,46 @@
+Start address = 298
+Code lines count = 43 | 0x2b
+<address> - <hex asm> - <mnemonic>
+0000 - 1 82 - v0_input: word read_handler
+0002 - 1 c7 - v1_output: word cat_handler
+0020 - 68 65 6c 6c 6f 2c 20 0 - msg1: byte 'hello, ', 0
+0028 - 21 0 - msg2: byte '!', 0
+002a - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - msg3: byte 0, 0,... 0, 0, 0, 0, 0, 0
+012a - 6 - ei
+012b - 50 ff 0 20 - push msg1
+012f - 51 ff 1 94 - call cat
+0133 - 50 ff 0 2a - push msg3
+0137 - 51 ff 1 4c - call read_str
+013b - 50 ff 0 2a - push msg3
+013f - 51 ff 1 94 - call cat
+0143 - 50 ff 0 28 - push msg2
+0147 - 51 ff 1 94 - call cat
+014b - 1 - halt
+014c - 80 84 41 80 ff 0 2 - mov r4, [sp+2]
+0153 - ff 80 85 ff 0 - mov byte r5, 0
+0158 - ff 80 81 40 ff 0 10 - mov byte r1, [0x10]
+015f - ff b0 81 ff 0 - cmp byte r1, 0
+0164 - 42 ff 1 6c - jne read_str.read
+0168 - 40 ff 1 58 - jmp read_str.wait_in
+016c - 52 ff 0 0 - int 0
+0170 - ff 62 85 - inc byte r5
+0173 - ff b0 4f 84 85 ff 0 1 ff 0 - cmp byte [r4+r5*1-1], 0
+017d - 42 ff 1 58 - jnz read_str.wait_in
+0181 - 8 - ret
+0182 - ff 80 41 84 85 40 ff 0 11 - mov byte [r4+r5], [0x11]
+018b - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
+0193 - 9 - iret
+0194 - 80 83 41 80 ff 0 2 - mov r3, [sp+2]
+019b - ff 80 82 ff 0 - mov byte r2, 0
+01a0 - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
+01a7 - ff b0 81 ff 0 - cmp byte r1, 0
+01ac - 42 ff 1 b4 - jne cat.int
+01b0 - 40 ff 1 a0 - jmp cat.wait
+01b4 - 52 ff 0 1 - int 1
+01b8 - ff b0 4f 83 82 ff 0 1 ff 0 - cmp byte [r3+r2*1-1], 0
+01c2 - 42 ff 1 a0 - jnz cat.wait
+01c6 - 8 - ret
+01c7 - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+01cf - ff 80 40 ff 0 13 41 83 82 - mov byte [0x13], [r3+r2]
+01d8 - ff 62 82 - inc byte r2
+01db - 9 - iret
