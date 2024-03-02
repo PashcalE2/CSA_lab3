@@ -54,6 +54,23 @@ def str_to_number(number):
     return value, base
 
 
+def str_to_hex(string, directive):
+    string = string.strip("'")
+
+    repeats = 1
+    if directive == DataTypeDirectives.WORD:
+        repeats = 2
+    elif directive == DataTypeDirectives.DWORD:
+        repeats = 4
+
+    result = [ord(char) for char in string]
+    n = len(result)
+    if n < repeats:
+        result = [0] * (n - repeats) + result
+
+    result = [result[i] << ((repeats - i - 1) * 8) for i in range(repeats)]
+    return hex(sum(result))
+
 class Parser:
     """
     Очень большой и очень страшный парсер на все случаи жизни.
@@ -567,8 +584,8 @@ def get_meaningful_token(line):
 
 def translate_stage_1(text):
     """
-    Первый проход транслятора. Преобразование текста программы в список
-    инструкций.
+    Первый проход транслятора.
+    Преобразование текста программы в список организации памяти, инструкций и размещений данных.
     """
 
     def check_new_label(label, last_root_label):
@@ -609,6 +626,7 @@ def translate_stage_1(text):
                 label, last_root_label = check_new_label(label, last_root_label)
 
                 code.append({"mem_address": 0, "label": label, "term": Term(line_num, token)})
+                print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
             except Exception as e:
                 pass
@@ -619,6 +637,7 @@ def translate_stage_1(text):
             # следующий байт-код будет иметь этот адрес
             mem_address, base = str_to_number(mem_address)
             code.append({"mem_address": mem_address, "is_org": True, "term": Term(line_num, token)})
+            print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
             continue
         except Exception as e:
             print("Ошибка при проверке `org`: {}".format(e))
@@ -662,6 +681,7 @@ def translate_stage_1(text):
             term_mnemonic += ", ".join(args)
 
             code.append({"mem_address": 0, "is_data": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
+            print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
             continue
         except Exception as e:
             print("Ошибка при проверки размещения данных: {}".format(e))
@@ -700,6 +720,9 @@ def translate_stage_1(text):
                 data.extend(ByteCodeFile.number_to_big_endian(args_count, DataTypeDirectives.BYTE.bytes_count))
 
             for i in range(args_count):
+                if Parser.is_string(args[i]):
+                    args[i] = str_to_hex(args[i], directive)
+
                 arg_is_number, arg_is_register, arg_is_label, arg_is_addressing = arg_is_number_register_label_or_addressing(args[i])
 
                 arg_type = InstructionSet.form_arg_type(arg_is_number, arg_is_label, arg_is_register)
@@ -715,7 +738,6 @@ def translate_stage_1(text):
                 byte_code, args[i] = encode_instruction_arg(directive_name, args[i])
                 data.extend(byte_code)
 
-            print(data)
             is_correct, error_msg = instruction.validate_directive_and_args(directive, args)
             if not is_correct:
                 raise Exception(error_msg)
@@ -726,15 +748,12 @@ def translate_stage_1(text):
             term_mnemonic += ", ".join(args)
 
             code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
+            print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
             continue
         except Exception as e:
             print("Ошибка при проверке инструкции: {}".format(e))
 
-        raise Exception("`{}` - не пойми че написано, вот как можно:"
-                        "\nОрганизация памяти = org (number)"
-                        "\nТолько метка = label:"
-                        "\nОпределить данные = (label:)? (byte|word) data (, data)*"
-                        "\nЗаписать инструкцию = (label:)? op (byte|word)? operand (, (byte|word)? operand)*".format(token))
+        raise Exception("не пойми что написано")
 
     if entry_point_label not in labels:
         raise Exception("В коде должна присутствовать метка `{}`, откуда начнется исполнение программы".format(entry_point_label))
@@ -746,7 +765,7 @@ def translate_stage_2(labels, code):
     """
     Второй проход транслятора.
 
-    Происходит подсчет адресов для меток, инструкций и кода, на основе директивы `org`
+    Подсчет адресов для меток, инструкций и кода, на основе директивы `org`
     """
 
     # Первый свободный адрес, откуда по-умолчанию транслятор начинает пихать данные и код
@@ -757,7 +776,6 @@ def translate_stage_2(labels, code):
     labels_waiting_to_init = []
 
     for line in code:
-        print(line)
         if organize_next:
             mem_address = organize_address
             organize_next = False
@@ -858,8 +876,6 @@ def translate(text):
     code = translate_stage_3(labels, code)
     code = translate_stage_4(code)
 
-    print("\n".join([str(line) for line in code]))
-
     return labels["start"], code
 
 
@@ -873,7 +889,7 @@ def main(source, target):
     ByteCodeFile.write(target, start_address, code)
     ByteCodeFile.write_debug(target + ".debug", start_address, code)
 
-    print("source LoC:", len(source.split("\n")), "asm instr:", len(code))
+    print("Количество строк исходного кода: {}\nКоличество строк тела объектного файла: {}".format(len(source.split("\n")), len(code)))
 
 
 if __name__ == "__main__":

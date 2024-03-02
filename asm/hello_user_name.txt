@@ -1,0 +1,73 @@
+org 0
+v0_input: word v0_handler, 0x40
+v1_output: word v1_handler, 0x40
+
+org 0x200
+
+wait_input_limit: word 1000
+wait_output_limit: word 1000
+
+input_buffer: byte 0x100 dup(0)
+buffer_tail: byte 0
+buffer_head: byte 0
+
+org 0x20
+start:
+.wait_in: di
+    mov byte r1, [0x10]
+    cmp r1, 0
+    jne start.read
+    cmp [wait_input_limit], 0
+    jl start.wait_out
+    sub [wait_input_limit], 1
+
+.wait_out:
+    mov byte r1, [0x12]
+    cmp r1, 0
+    jne start.write
+    cmp [wait_output_limit], 0
+    jl exit
+    sub [wait_output_limit], 1
+
+    jmp start.wait_in
+
+.read:
+    ei
+    int 0
+    di
+    jmp start.wait
+
+.write:
+    ei
+    int 1
+    di
+    jmp start
+
+exit:
+    halt
+
+v0_handler: di
+    mov r1, [buffer_head]
+    mov byte r1, [0x11]
+    mov [input_buffer+r1], r1
+    cmp r1, 0
+    jne v0_handler.end
+    mov word [wait_input_limit], -1
+.end:
+    inc [buffer_head]
+    mov byte [0x10], 0
+    iret
+
+v1_handler: di
+    mov r2, [buffer_tail]
+    mov r1, [input_buffer+r2]
+    mov byte [0x13], r1
+    cmp r1, 0
+    jne v1_handler.end
+    mov word [wait_output_limit], -1
+
+.end:
+    inc [buffer_tail]
+    mov byte [0x12], 0
+    iret
+

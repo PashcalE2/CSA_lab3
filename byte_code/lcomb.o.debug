@@ -1,6 +1,7 @@
-Start address = 34
-Code lines count = 3 | 0x3
+Start address = 22
+Code lines count = 4 | 0x4
 <address> - <hex asm> - <mnemonic>
-0020 - 0 1 - data: word 0x1
-0022 - c0 5 40 ff 0 20 ...  3 ff 0 4 ff 0 5 - lcomb [data], r2, 3, 4, 5
-0032 - 1 - halt
+0014 - 0 1 - data: word 0x1
+0016 - c0 5 40 ff 0 14 ...  3 ff 0 4 ff 0 5 - lcomb [data], r2, 3, 4, 5
+0026 - 80 81 ff 31 32 - mov r1, 0x3132
+002b - 1 - halt

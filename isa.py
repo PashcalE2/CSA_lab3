@@ -494,7 +494,7 @@ class Registers:
     register_max_uint = (1 << register_max_size_in_bytes * 8) - 1
 
     # Регистры общего назначения (8)
-    SP = Register("sp", 0, DataTypeDirectives.WORD.bytes_count, True)
+    SP = Register("sp", 0, DataTypeDirectives.WORD.bytes_count, False)
     "Указатель на стек"
 
     R1 = Register("r1", 1, DataTypeDirectives.DWORD.bytes_count, True)
