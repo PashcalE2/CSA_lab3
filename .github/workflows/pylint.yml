@@ -3,7 +3,7 @@ name: Pylint
 on: [push]
 
 jobs:
-  working-directory: ..
+  working-directory: ./csa-lab3
 
   test:
     runs-on: ubuntu-latest
