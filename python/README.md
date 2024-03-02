@@ -498,7 +498,73 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 CI:
 
 ``` yaml
+name: Python CI
 
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/*"
+      - "python/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/*"
+      - "python/**"
+
+defaults:
+  run:
+    working-directory: ./python
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+      - name: Run tests and collect coverage
+        run: |
+          poetry run coverage run -m pytest .
+          poetry run coverage report -m
+        env:
+          CI: true
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+      - name: Check code formatting with Ruff
+        run: poetry run ruff format --check .
+
+      - name: Run Ruff linters
+        run: poetry run ruff check .
 ```
 
 где:
@@ -509,79 +575,3 @@ CI:
 - `pytest` -- утилита для запуска тестов.
 - `ruff` -- утилита для форматирования и проверки стиля кодирования.
 
-Пример использования и журнал работы процессора на примере `cat`:
-
-``` shell
-$ cd src/brainfuck
-$ cat examples/foo_input.txt
-foo
-$ cat examples/cat.bf
-,[.,]
-$ ./translator.py examples/cat.bf target.out
-source LoC: 1 code instr: 6
-$ cat target.out
-[{"index": 0, "opcode": "input", "term": [1, 1, ","]},
- {"index": 4, "opcode": "jz", "arg": 5, "term": [1, 2, "["]},
- {"index": 2, "opcode": "print", "term": [1, 3, "."]},
- {"index": 3, "opcode": "input", "term": [1, 4, ","]},
- {"index": 4, "opcode": "jmp", "arg": 1, "term": [1, 5, "]"]},
- {"opcode": "halt"}]⏎
-$ ./machine.py target.out examples/foo_input.txt
-DEBUG:root:TICK:   0 PC:   0 ADDR:   0 MEM_OUT: 0 ACC: 0  input  (','@1:1)
-DEBUG:root:input: 'f'
-DEBUG:root:TICK:   2 PC:   1 ADDR:   0 MEM_OUT: 102 ACC: 0  jz 5  ('['@1:2)
-DEBUG:root:TICK:   4 PC:   2 ADDR:   0 MEM_OUT: 102 ACC: 102  print  ('.'@1:3)
-DEBUG:root:output: '' << 'f'
-DEBUG:root:TICK:   6 PC:   3 ADDR:   0 MEM_OUT: 102 ACC: 102  input  (','@1:4)
-DEBUG:root:input: 'o'
-DEBUG:root:TICK:   8 PC:   4 ADDR:   0 MEM_OUT: 111 ACC: 102  jmp 1  (']'@1:5)
-DEBUG:root:TICK:   9 PC:   1 ADDR:   0 MEM_OUT: 111 ACC: 102  jz 5  ('['@1:2)
-DEBUG:root:TICK:  11 PC:   2 ADDR:   0 MEM_OUT: 111 ACC: 111  print  ('.'@1:3)
-DEBUG:root:output: 'f' << 'o'
-DEBUG:root:TICK:  13 PC:   3 ADDR:   0 MEM_OUT: 111 ACC: 111  input  (','@1:4)
-DEBUG:root:input: 'o'
-DEBUG:root:TICK:  15 PC:   4 ADDR:   0 MEM_OUT: 111 ACC: 111  jmp 1  (']'@1:5)
-DEBUG:root:TICK:  16 PC:   1 ADDR:   0 MEM_OUT: 111 ACC: 111  jz 5  ('['@1:2)
-DEBUG:root:TICK:  18 PC:   2 ADDR:   0 MEM_OUT: 111 ACC: 111  print  ('.'@1:3)
-DEBUG:root:output: 'fo' << 'o'
-DEBUG:root:TICK:  20 PC:   3 ADDR:   0 MEM_OUT: 111 ACC: 111  input  (','@1:4)
-DEBUG:root:input: '\n'
-DEBUG:root:TICK:  22 PC:   4 ADDR:   0 MEM_OUT: 10 ACC: 111  jmp 1  (']'@1:5)
-DEBUG:root:TICK:  23 PC:   1 ADDR:   0 MEM_OUT: 10 ACC: 111  jz 5  ('['@1:2)
-DEBUG:root:TICK:  25 PC:   2 ADDR:   0 MEM_OUT: 10 ACC: 10  print  ('.'@1:3)
-DEBUG:root:output: 'foo' << '\n'
-DEBUG:root:TICK:  27 PC:   3 ADDR:   0 MEM_OUT: 10 ACC: 10  input  (','@1:4)
-WARNING:root:Input buffer is empty!
-INFO:root:output_buffer: 'foo\n'
-```
-
-Пример проверки исходного кода:
-
-``` shell
-$ poetry run pytest . -v --update-goldens
-=================================== test session starts ====================================
-platform darwin -- Python 3.12.0, pytest-7.4.3, pluggy-1.3.0 -- /Users/ryukzak/Library/Caches/pypoetry/virtualenvs/brainfuck-NIOcuFng-py3.12/bin/python
-cachedir: .pytest_cache
-rootdir: /Users/ryukzak/edu/csa/src/brainfuck
-configfile: pyproject.toml
-plugins: golden-0.2.2
-collected 6 items                                                                          
-
-integration_test.py::test_translator_and_machine[golden/cat.yml] PASSED              [ 16%]
-integration_test.py::test_translator_and_machine[golden/hello.yml] PASSED            [ 33%]
-integration_test.py::TestTranslatorAndMachine::test_cat_example PASSED               [ 50%]
-integration_test.py::TestTranslatorAndMachine::test_cat_example_log PASSED           [ 66%]
-integration_test.py::TestTranslatorAndMachine::test_hello_example PASSED             [ 83%]
-machine.py::machine.DataPath.signal_wr PASSED                                        [100%]
-
-==================================== 6 passed in 0.14s =====================================
-$ poetry run ruff check .
-$ poetry run ruff format .
-4 files left unchanged
-```
-
-```text
-| ФИО                            | алг   | LoC | code байт | code инстр. | инстр. | такт. | вариант |
-| Пенской Александр Владимирович | hello | ... | -         | ...         | ...    | ...   | ...     |
-| Пенской Александр Владимирович | cat   | 1   | -         | 6           | 15     | 28    | ...     |
-```

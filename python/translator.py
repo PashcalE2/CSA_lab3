@@ -1,33 +1,4 @@
 #!/usr/bin/python3
-"""Транслятор asm в машинный код.
-
-program ::= { line }
-
-line ::= label [ comment ] "\n"
-       | instr [ comment ] "\n"
-       | [ comment ] "\n"
-
-label ::= label_name ":"
-
-instr ::= op0
-        | op1 label_name
-
-op0 ::= "inc"
-      | "dec"
-      | "in"
-      | "out"
-
-op1 ::= "jmp"
-      | "jz"
-
-integer ::= [ "-" ] { <any of "0-9"> }-
-
-label_name ::= <any of "a-z A-Z _"> { <any of "a-z A-Z 0-9 _"> }
-
-comment ::= ";" <any symbols except "\n">
-
-"""
-
 import re
 import sys
 
