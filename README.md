@@ -273,7 +273,7 @@
 - `arg` -- аргумент (может отсутствовать);
 - `term` -- информация о связанном месте в исходном коде (если есть).
 
-Типы данных в модуле [isa](p_isa.py), где:
+Типы данных в модуле [isa](p_examples/p_isa.py), где:
 
 - `Opcode` -- перечисление кодов операций;
 - `Term` -- структура для описания значимого фрагмента кода исходной программы.
@@ -282,7 +282,7 @@
 
 Интерфейс командной строки: `translator.py <input_file> <target_file>`
 
-Реализовано в модуле: [translator](p_translator.py)
+Реализовано в модуле: [translator](p_examples/p_translator.py)
 
 Этапы трансляции (функция `translate`):
 
@@ -309,7 +309,7 @@
 
 Интерфейс командной строки: `machine.py <machine_code_file> <input_file>`
 
-Реализовано в модуле: [machine](p_machine.py).
+Реализовано в модуле: [machine](p_examples/p_machine.py).
 
 ### DataPath
 
@@ -430,7 +430,7 @@
 1. [hello world](p_examples/hello.bf).
 2. [cat](p_examples/cat.bf) -- программа `cat`, повторяем ввод на выводе.
 
-Интеграционные тесты реализованы тут [integration_test](p_integration_test.py) в двух вариантах:
+Интеграционные тесты реализованы тут [integration_test](p_examples/p_integration_test.py) в двух вариантах:
 
 - через golden tests, конфигурация которых лежит в папке [golden](./golden) (требуются по заданию).
 - через unittest (приведён как **устаревший** пример).

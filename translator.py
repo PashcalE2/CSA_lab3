@@ -750,7 +750,7 @@ def translate_stage_2(labels, code):
     """
 
     # Первый свободный адрес, откуда по-умолчанию транслятор начинает пихать данные и код
-    mem_address = 0x0020
+    mem_address = 0x0014
     organize_address = 0
     organize_next = False
 
