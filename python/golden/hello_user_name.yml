@@ -1,5 +1,74 @@
 in_source: |-
-  asm/hello_user_name.txt
+  org 0
+  v0_input: word read_handler
+  v1_output: word cat_handler
+
+  org 0x20
+  msg1: byte 'Hello, ', 0
+  msg2: byte '!', 0
+  msg3: byte 256 dup(0)
+
+  start:
+      ei
+      push word msg1
+      call cat
+      pop r1
+
+      push word msg3
+      call read_str
+      pop r1
+
+      push word msg3
+      call cat
+      pop r1
+
+      push word msg2
+      call cat
+      pop r1
+
+      halt
+
+  read_str:
+      mov word r4, [sp+2] ; base
+      mov byte r5, 0 ; counter
+  .wait_in:
+      mov byte r1, [0x10]
+      cmp byte r1, 0
+      jne read_str.read ; i ready
+      ; i is not ready
+      jmp read_str.wait_in ; i not ready
+
+  .read:
+      int 0
+      inc byte r5
+      cmp byte [r4+r5*1-1], 0 ; read 0
+      jnz read_str.wait_in
+      ret ; in is over
+
+  read_handler:
+      mov byte [r4+r5], [0x11] ; save to buffer
+      mov byte [0x10], 0
+      iret
+
+  cat:
+      mov word r3, [sp+2] ; base
+      mov byte r2, 0 ; counter
+  .wait:
+      mov byte r1, [0x12]
+      cmp byte r1, 0
+      jne cat.int
+      jmp cat.wait
+  .int:
+      int 1
+      cmp byte [r3+r2*1-1], 0
+      jnz cat.wait
+      ret
+
+  cat_handler:
+      mov byte [0x12], 0
+      mov byte [0x13], [r3+r2]
+      inc byte r2
+      iret
 
 in_stdin: |-
   [(10, 'J'), (20, 'a'), (21, 'c'), (32, 'k')]

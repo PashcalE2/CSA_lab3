@@ -51,6 +51,7 @@ out_code_debug: |-
 out_stdout: |
   Output: hello, world!
   instr_counter: 132
+
 out_log: |
   DEBUG:root:TICK:        0 | PS: *W* _i_ _e_ _n_ _z_ _v_ _c_ | IP: 00 2f | AR: 00 00 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 00 | DN: 00 00 | ABR1: 00 00 | ABR2
   : 00 00 | ABR3: 00 00 | SP: 00 00 | MEM[SP]: 00 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 00 | Mnemonic: nop

@@ -11,15 +11,19 @@ start:
     ei
     push word msg1
     call cat
+    pop r1
 
     push word msg3
     call read_str
+    pop r1
 
     push word msg3
     call cat
+    pop r1
 
     push word msg2
     call cat
+    pop r1
 
     halt
 

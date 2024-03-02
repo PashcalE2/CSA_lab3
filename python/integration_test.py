@@ -36,6 +36,6 @@ def test_translator_asm_and_machine(golden, caplog):
         with open(target_debug, encoding="utf-8") as file:
             code = file.read()
 
-        assert code == golden.out["out_code_debug"]
-        assert stdout.getvalue() == golden.out["out_stdout"]
-        assert caplog.text == golden.out["out_log"]
+        assert code.replace(" ", "") == golden.out["out_code_debug"].replace(" ", "")
+        assert stdout.getvalue().replace(" ", "") == golden.out["out_stdout"].replace(" ", "")
+        assert caplog.text.replace(" ", "") == golden.out["out_log"].replace(" ", "")

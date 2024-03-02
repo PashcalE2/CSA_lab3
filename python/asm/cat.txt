@@ -56,4 +56,3 @@ v1_handler:
     mov byte [0x13], [input_buffer+r1] ; write to out
     mov byte [0x12], 0
     iret
-
