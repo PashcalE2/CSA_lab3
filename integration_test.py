@@ -57,8 +57,10 @@ def test_translator_and_machine(golden, caplog):
     # Установим уровень отладочного вывода на DEBUG
     caplog.set_level(logging.DEBUG)
 
+    import os
+    print(os.path.dirname(os.path.realpath(__file__)))
+
     with tempfile.TemporaryDirectory() as tmpdirname:
-        print(tmpdirname)
         source = os.path.join(tmpdirname, "source.asm")
         input_stream = os.path.join(tmpdirname, "input.txt")
         target = os.path.join(tmpdirname, "target.o")
