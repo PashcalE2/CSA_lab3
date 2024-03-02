@@ -1,8 +1,8 @@
 in_source: |-
-  ./asm/hello_user_name.txt
+  asm/hello_user_name.txt
 
 in_stdin: |-
-  ./input/hello_user_name.txt
+  input/hello_user_name.txt
 out_code_debug: |-
   a
 out_stdout: |

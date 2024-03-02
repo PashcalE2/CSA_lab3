@@ -1,7 +1,7 @@
 in_source: |-
-  ./asm/hello.txt
+  asm/hello.txt
 in_stdin: |-
-  ./input/hello.txt
+  input/hello.txt
 out_code_debug: |-
   Start address = 47
   Code lines count = 17 | 0x11

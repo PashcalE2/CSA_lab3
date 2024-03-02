@@ -1,7 +1,7 @@
 in_source: |-
-  ./asm/cat.txt
+  asm/cat.txt
 in_stdin: |-
-  ./input/cat.txt
+  input/cat.txt
 out_code_debug: |-
   Start address = 290
   Code lines count = 39 | 0x27
