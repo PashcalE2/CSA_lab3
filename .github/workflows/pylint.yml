@@ -1,13 +1,13 @@
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - ".github/workflows/*"
       - "**"
   pull_request:
     branches:
-      - master
+      - main
     paths:
       - ".github/workflows/*"
       - "**"
