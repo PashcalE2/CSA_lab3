@@ -435,7 +435,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 ### DataPath
 
-[Схема](schemas/data_path.png)
+![Схема](schemas/data_path.png)
 
 Реализован в классе `DataPath`.
 
@@ -463,7 +463,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 ### ControlUnit
 
-[Схема](schemas/control_unit.png)
+![Схема](schemas/control_unit.png)
 
 Реализован в классе [ControlUnit](machine.py).
 
