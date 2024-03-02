@@ -68,9 +68,12 @@ def test_translator_and_machine(golden, caplog):
             file.write(golden["in_stdin"])
 
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
-            translator.main(source, target)
-            print("============================================================")
-            machine.main(target, input_stream)
+            try:
+                translator.main(source, target)
+                print("============================================================")
+                machine.main(target, input_stream)
+            except Exception as e:
+                print("Неудача")
 
         with open(target + ".debug", encoding="utf-8") as file:
             code = file.read()

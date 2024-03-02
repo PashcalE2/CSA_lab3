@@ -1,5 +1,5 @@
 in_source: |-
-  a
+  ./asm/hello_user_name.txt
 
 in_stdin: |-
   ./input/hello_user_name.txt
