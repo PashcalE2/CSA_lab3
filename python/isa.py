@@ -656,7 +656,7 @@ class ByteCodeFile:
         ...
         """
 
-        with open(filename, "w") as file:
+        with open(filename, "w", encoding="utf-8") as file:
             file.write(ByteCodeFile.code_to_debug(start_address, code))
             file.close()
 
