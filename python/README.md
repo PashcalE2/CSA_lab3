@@ -2,7 +2,7 @@
 
 - P33151, Шипулин Павел Андреевич.
 - `asm | cisc | neum | hw | instr | binary | trap | mem | cstr | prob2 | spi`
-- без усложнения
+- без усложнения 
 
 ## Язык программирования
 
@@ -492,7 +492,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 2. [cat](asm/cat.txt) -- программа `cat`, повторяем ввод на выводе.
 3. [hello user name](asm/hello_user_name.txt) -- программа `cat`, повторяем ввод на выводе.
 
-Интеграционные тесты реализованы тут [integration_test](integration_test.py) через golden tests,
+Интеграционные тесты реализованы тут [integration_test](golden_tests.py) через golden tests,
 конфигурация которых лежит в папке [golden](golden)
 
 CI:
