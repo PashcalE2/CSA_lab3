@@ -3,7 +3,6 @@ import re
 import sys
 
 from isa import ByteCodeFile, InstructionSet, InstructionPrefix, InstructionPostfix, Registers, ProgramStateRegister
-from python import translator
 from translator import Parser
 
 
