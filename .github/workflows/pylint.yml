@@ -1,20 +1,22 @@
+name: Python CI
+
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - ".github/workflows/*"
-      - "**"
+      - "python/**"
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - ".github/workflows/*"
-      - "**"
+      - "python/**"
 
 defaults:
   run:
-    working-directory: .
+    working-directory: ./python
 
 jobs:
   test:
