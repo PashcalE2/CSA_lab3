@@ -885,7 +885,7 @@ def translate(text, print_err):
     return labels["start"], code
 
 
-def main(source, target, print_err=False):
+def main(source, target, target_debug, print_err=False):
     """Функция запуска транслятора. Параметры -- исходный и целевой файлы."""
     with open(source, encoding="utf-8") as f:
         source = f.read().lower()
@@ -893,7 +893,7 @@ def main(source, target, print_err=False):
     start_address, code = translate(source, print_err)
 
     ByteCodeFile.write(target, start_address, code)
-    ByteCodeFile.write_debug(target + ".debug", start_address, code)
+    ByteCodeFile.write_debug(target_debug, start_address, code)
 
     # print("Количество строк исходного кода: {}\nКоличество строк тела объектного файла: {}".format(len(source.split("\n")), len(code)))
 

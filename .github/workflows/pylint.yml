@@ -3,67 +3,39 @@ name: Python CI
 on:
   push:
     branches:
-      - master
-    paths:
-      - ".github/workflows/*"
-      - "python/**"
-  pull_request:
-    branches:
-      - master
-    paths:
-      - ".github/workflows/*"
-      - "python/**"
-
-defaults:
-  run:
-    working-directory: ./python
+      - main
 
 jobs:
-  test:
+  computer-simulator:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10.6
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install --no-root
 
-      - name: Run tests and collect coverage
-        run: |
-          poetry run coverage run -m pytest .
-          poetry run coverage report -m
-        env:
-          CI: true
+    - name: Run tests and coverage
+      run: |
+        poetry run pytest --verbose
+        poetry run coverage run -m pytest
+        poetry run coverage report
 
-  lint:
-    runs-on: ubuntu-latest
+    - name: Run mypy checks
+      run: poetry run mypy .
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Check code formatting
+      run: poetry run ruff format --check .
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
-
-      - name: Check code formatting with Ruff
-        run: poetry run ruff format --check .
-
-      - name: Run Ruff linters
-        run: poetry run ruff check .
+    - name: Run code linting
+      run: |
+        poetry run ruff check .
