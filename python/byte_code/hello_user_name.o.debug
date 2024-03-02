@@ -1,50 +1,88 @@
-Start address = 298
-Code lines count = 47 | 0x2f
+Start address = 830
+Code lines count = 85 | 0x55
 <address> - <hex asm> - <mnemonic>
-0000 - 1 8a - v0_input: word read_handler
-0002 - 1 cf - v1_output: word cat_handler
-0020 - 68 65 6c 6c 6f 2c 20 0 - msg1: byte 'hello, ', 0
-0028 - 21 0 - msg2: byte '!', 0
-002a - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - msg3: byte 0, 0,... 0, 0, 0, 0, 0, 0
-012a - 6 - ei
-012b - 50 ff 0 20 - push msg1
-012f - 51 ff 1 9c - call cat
-0133 - 71 81 - pop r1
-0135 - 50 ff 0 2a - push msg3
-0139 - 51 ff 1 54 - call read_str
-013d - 71 81 - pop r1
-013f - 50 ff 0 2a - push msg3
-0143 - 51 ff 1 9c - call cat
-0147 - 71 81 - pop r1
-0149 - 50 ff 0 28 - push msg2
-014d - 51 ff 1 9c - call cat
-0151 - 71 81 - pop r1
-0153 - 1 - halt
-0154 - 80 84 41 80 ff 0 2 - mov r4, [sp+2]
-015b - ff 80 85 ff 0 - mov byte r5, 0
-0160 - ff 80 81 40 ff 0 10 - mov byte r1, [0x10]
-0167 - ff b0 81 ff 0 - cmp byte r1, 0
-016c - 42 ff 1 74 - jne read_str.read
-0170 - 40 ff 1 60 - jmp read_str.wait_in
-0174 - 52 ff 0 0 - int 0
-0178 - ff 62 85 - inc byte r5
-017b - ff b0 4f 84 85 ff 0 1 ff 0 - cmp byte [r4+r5*1-1], 0
-0185 - 42 ff 1 60 - jnz read_str.wait_in
-0189 - 8 - ret
-018a - ff 80 41 84 85 40 ff 0 11 - mov byte [r4+r5], [0x11]
-0193 - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
-019b - 9 - iret
-019c - 80 83 41 80 ff 0 2 - mov r3, [sp+2]
-01a3 - ff 80 82 ff 0 - mov byte r2, 0
-01a8 - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
-01af - ff b0 81 ff 0 - cmp byte r1, 0
-01b4 - 42 ff 1 bc - jne cat.int
-01b8 - 40 ff 1 a8 - jmp cat.wait
-01bc - 52 ff 0 1 - int 1
-01c0 - ff b0 4f 83 82 ff 0 1 ff 0 - cmp byte [r3+r2*1-1], 0
-01ca - 42 ff 1 a8 - jnz cat.wait
-01ce - 8 - ret
-01cf - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
-01d7 - ff 80 40 ff 0 13 41 83 82 - mov byte [0x13], [r3+r2]
-01e0 - ff 62 82 - inc byte r2
-01e3 - 9 - iret
+0000 - 4 31 - v0_input: word write_handler
+0002 - 4 72 - v1_output: word read_handler
+0020 - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - input_buffer: by... 0, 0, 0, 0, 0, 0
+0120 - 0 - buffer_head: byte 0
+0121 - 57 68 61 74 73 2... 61 6d 65 3f 20 0 - msg1: byte 'What...  your name? ', 0
+0133 - 48 65 6c 6c 6f 2c 20 0 - msg2: byte 'Hello, ', 0
+013b - 21 0 - msg3: byte '!', 0
+013d - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - input_msg: byte ... 0, 0, 0, 0, 0, 0
+023d - 0 - pointer: byte 0
+023e - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - full: byte 0, 0,... 0, 0, 0, 0, 0, 0
+033e - 6 - ei
+033f - 50 ff 2 3d - push pointer
+0343 - 50 ff 1 21 - push msg1
+0347 - 51 ff 3 cd - call add_to_str
+034b - ff a0 40 ff 2 3e 81 - add byte [full], r1
+0352 - 71 81 - pop r1
+0354 - 71 81 - pop r1
+0356 - 80 81 ff 2 3d - mov r1, pointer
+035b - ff a0 81 40 ff 2 3e - add byte r1, [full]
+0362 - 50 81 - push r1
+0364 - 50 ff 1 33 - push msg2
+0368 - 51 ff 3 cd - call add_to_str
+036c - ff a0 40 ff 2 3e 81 - add byte [full], r1
+0373 - 71 81 - pop r1
+0375 - 71 81 - pop r1
+0377 - 50 ff 1 3d - push input_msg
+037b - 51 ff 4 43 - call read
+037f - ff a0 40 ff 2 3e 81 - add byte [full], r1
+0386 - 71 81 - pop r1
+0388 - 80 81 ff 2 3d - mov r1, pointer
+038d - ff a0 81 40 ff 2 3e - add byte r1, [full]
+0394 - 50 81 - push r1
+0396 - 51 ff 3 cd - call add_to_str
+039a - ff a0 40 ff 2 3e 81 - add byte [full], r1
+03a1 - 71 81 - pop r1
+03a3 - 71 81 - pop r1
+03a5 - 80 81 ff 2 3d - mov r1, pointer
+03aa - ff a0 81 40 ff 2 3e - add byte r1, [full]
+03b1 - 50 81 - push r1
+03b3 - 51 ff 3 cd - call add_to_str
+03b7 - ff a0 40 ff 2 3e 81 - add byte [full], r1
+03be - 71 81 - pop r1
+03c0 - 71 81 - pop r1
+03c2 - 50 ff 2 3d - push pointer
+03c6 - 51 ff 3 fb - call write
+03ca - 71 81 - pop r1
+03cc - 1 - halt
+03cd - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+03d4 - 80 86 41 80 ff 0 4 - mov r6, [sp+4]
+03db - 80 85 ff 0 0 - mov r5, 0
+03e0 - b0 41 86 85 ff 0 0 - cmp [r6+r5], 0
+03e7 - 41 ff 3 f7 - jz add_to_str.ret
+03eb - 80 40 87 41 86 85 - mov [r7], [r6+r5]
+03f1 - 62 85 - inc r5
+03f3 - 40 ff 3 e0 - jmp add_to_str.loop
+03f7 - 80 81 85 - mov r1, r5
+03fa - 8 - ret
+03fb - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+0402 - 80 86 ff 0 0 - mov r6, 0
+0407 - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
+040e - ff b0 81 ff 0 - cmp byte r1, 0
+0413 - 42 ff 4 1b - jne write.int
+0417 - 40 ff 4 7 - jmp write.wait
+041b - ff b0 41 87 86 ff 0 - cmp byte [r7+r6], 0
+0422 - 52 ff 0 0 - int 0
+0426 - 41 ff 4 30 - jz write.ret
+042a - 62 86 - inc r6
+042c - 42 ff 4 7 - jne write.wait
+0430 - 8 - ret
+0431 - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+0439 - ff 80 40 ff 0 13 41 86 87 - mov byte [0x13], [r6+r7]
+0442 - 9 - iret
+0443 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+044a - 80 86 ff 0 0 - mov r6, 0
+044f - ff b0 40 ff 0 10 ff 0 - cmp byte [0x10], 0
+0457 - 41 ff 4 4f - jz read.wait
+045b - 52 ff 0 1 - int 1
+045f - ff b0 41 87 86 ff 0 - cmp byte [r7+r6], 0
+0466 - 41 ff 4 6e - jz read.ret
+046a - 40 ff 4 4f - jmp read.wait
+046e - 80 81 86 - mov r1, r6
+0471 - 8 - ret
+0472 - ff 80 41 87 86 40 ff 0 11 - mov byte [r7+r6], [0x11]
+047b - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
+0483 - 9 - iret

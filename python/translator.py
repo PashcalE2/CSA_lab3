@@ -294,7 +294,7 @@ class Parser:
         if pos < 0:
             pos = len(line)
 
-        mnemonic = line[:pos]
+        mnemonic = line[:pos].lower()
 
         if mnemonic not in Parser.mnemonic_to_instruction_dict:
             raise Exception("`{}` не мнемоника инструкции".format(mnemonic))
@@ -632,7 +632,7 @@ def translate_stage_1(text, print_err):
                 pass
 
         try:
-            mem_address, _ = Parser.parse_org(token)
+            mem_address, _ = Parser.parse_org(token.lower())
             # это директива организации кода / данных в памяти
             # следующий байт-код будет иметь этот адрес
             mem_address, base = str_to_number(mem_address)
@@ -888,7 +888,7 @@ def translate(text, print_err):
 def main(source, target, target_debug, print_err=False):
     """Функция запуска транслятора. Параметры -- исходный и целевой файлы."""
     with open(source, encoding="utf-8") as f:
-        source = f.read().lower()
+        source = f.read()
 
     start_address, code = translate(source, print_err)
 

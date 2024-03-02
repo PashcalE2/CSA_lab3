@@ -1,70 +1,124 @@
 org 0
-v0_input: word read_handler
-v1_output: word cat_handler
+v0_input: word write_handler
+v1_output: word read_handler
 
 org 0x20
-msg1: byte 'Hello, ', 0
-msg2: byte '!', 0
-msg3: byte 256 dup(0)
+input_buffer: byte 256 dup(0)
+buffer_head: byte 0
+
+msg1: byte 'Whats your name? ',0
+msg2: byte 'Hello, ',0
+msg3: byte '!',0
+
+input_msg: byte 256 dup(0)
+
+pointer: byte 0
+full: byte 256 dup(0)
 
 start:
     ei
-    push word msg1
-    call cat
+
+    push pointer
+    push msg1
+    call add_to_str
+    add byte [full], r1
+    pop r1
     pop r1
 
-    push word msg3
-    call read_str
+    mov r1, pointer
+    add byte r1, [full]
+    push r1
+    push msg2
+    call add_to_str
+    add byte [full], r1
+    pop r1
     pop r1
 
-    push word msg3
-    call cat
+    push input_msg
+    call read
+    add byte [full], r1
     pop r1
 
-    push word msg2
-    call cat
+    mov r1, pointer
+    add byte r1, [full]
+    push r1
+    call add_to_str
+    add byte [full], r1
+    pop r1
+    pop r1
+
+    mov r1, pointer
+    add byte r1, [full]
+    push r1
+    call add_to_str
+    add byte [full], r1
+    pop r1
+    pop r1
+
+    push pointer
+    call write
     pop r1
 
     halt
 
-read_str:
-    mov word r4, [sp+2] ; base
-    mov byte r5, 0 ; counter
-.wait_in:
-    mov byte r1, [0x10]
-    cmp byte r1, 0
-    jne read_str.read ; i ready
-    ; i is not ready
-    jmp read_str.wait_in ; i not ready
 
-.read:
-    int 0
-    inc byte r5
-    cmp byte [r4+r5*1-1], 0 ; read 0
-    jnz read_str.wait_in
-    ret ; in is over
+add_to_str:
+    mov r7, [sp+2] ; add_base
+    mov r6, [sp+4] ; additional_base
+    mov r5, 0 ; counter
 
-read_handler:
-    mov byte [r4+r5], [0x11] ; save to buffer
-    mov byte [0x10], 0
-    iret
+.loop:
+    cmp [r6+r5], 0
+    jz add_to_str.ret
+    mov [r7], [r6+r5]
+    inc r5
+    jmp add_to_str.loop
 
-cat:
-    mov word r3, [sp+2] ; base
-    mov byte r2, 0 ; counter
+.ret:
+    mov r1, r5
+    ret
+
+
+write:
+    mov r7, [sp+2] ; base
+    mov r6, 0
 .wait:
     mov byte r1, [0x12]
     cmp byte r1, 0
-    jne cat.int
-    jmp cat.wait
+    jne write.int
+    jmp write.wait
 .int:
-    int 1
-    cmp byte [r3+r2*1-1], 0
-    jnz cat.wait
+    cmp byte [r7+r6], 0
+    int 0
+    jz write.ret
+    inc r6
+    jne write.wait
+
+.ret:
     ret
 
-cat_handler:
+write_handler:
     mov byte [0x12], 0
-    mov byte [0x13], [r3+r2]
-    inc byte r2
+    mov byte [0x13], [r6+r7]
+    iret
+
+
+read:
+    mov r7, [sp+2] ; base
+    mov r6, 0
+.wait:
+    cmp byte [0x10], 0 ; check flag
+    jz read.wait ;
+
+    int 1
+    cmp byte [r7+r6], 0
+    jz read.ret
+    jmp read.wait
+.ret:
+    mov r1, r6
+    ret
+
+read_handler:
+    mov byte [r7+r6], [0x11] ; save to buffer
+    mov byte [0x10], 0
     iret

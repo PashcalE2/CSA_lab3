@@ -3,6 +3,7 @@ import re
 import sys
 
 from isa import ByteCodeFile, InstructionSet, InstructionPrefix, InstructionPostfix, Registers, ProgramStateRegister
+from python import translator
 from translator import Parser
 
 
@@ -1154,10 +1155,7 @@ class ControlUnit:
                 self.data_path.signal_latch_ip()
             return
         elif opcode == InstructionSet.PUSH.opcode:
-            self.decode_instruction_arg_source(directive, sxt=1)
-
-            # VAL => DR
-            self.data_path.signal_latch_dr()
+            self.decode_instruction_arg_source(directive)
 
             self.write_to_stack(directive)
             return
@@ -1173,7 +1171,7 @@ class ControlUnit:
             self.data_path.alu.signal_or()
 
         elif opcode == InstructionSet.CALL.opcode:
-            self.decode_instruction_arg_source(directive, to_ac=1)
+            self.decode_instruction_arg_source(InstructionPrefix.WORD, to_ac=1)
 
             # IP => DR
             self.data_path.alu.signal_set_ip_to_right()
@@ -1257,6 +1255,7 @@ class ControlUnit:
 
         if opcode == InstructionSet.MOV.opcode:
             destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, pass_register=1, pass_memory_address=1)
+            # ABR1 => BR1
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
