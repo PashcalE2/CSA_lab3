@@ -16,8 +16,6 @@ import translator
 
 @pytest.mark.golden_test("golden/*.yml")
 def test_translator_asm_and_machine(golden, caplog):
-    """Почти полная копия test_translator_and_machine из golden_bf_test. Детали
-    см. там."""
     caplog.set_level(logging.DEBUG)
 
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -33,7 +31,6 @@ def test_translator_asm_and_machine(golden, caplog):
 
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             translator.main(source, target, target_debug)
-            print("============================================================")
             machine.main(target, input_stream)
 
         with open(target_debug, encoding="utf-8") as file:
