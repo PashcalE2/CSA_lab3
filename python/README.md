@@ -493,7 +493,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 3. [hello user name](asm/hello_user_name.txt) -- программа `cat`, повторяем ввод на выводе.
 
 Интеграционные тесты реализованы тут [integration_test](integration_test.py) через golden tests,
-конфигурация которых лежит в папке [golden](./golden)
+конфигурация которых лежит в папке [golden](golden)
 
 CI:
 

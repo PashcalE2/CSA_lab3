@@ -15,7 +15,6 @@
 import contextlib
 import io
 import logging
-import os
 import tempfile
 
 import machine
@@ -58,7 +57,7 @@ def test_translator_and_machine(golden, caplog):
     caplog.set_level(logging.DEBUG)
 
     import os
-    print(os.walk('.'))
+    print(os.walk('..'))
     with tempfile.TemporaryDirectory() as tmpdirname:
         source = os.path.join(tmpdirname, "source.asm")
         input_stream = os.path.join(tmpdirname, "input.txt")
