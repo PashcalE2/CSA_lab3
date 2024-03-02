@@ -1654,7 +1654,7 @@ def main(code_file, input_file):
         start_address,
         code,
         input_schedule=input_schedule,
-        limit=500,
+        limit=600,
     )
 
     print("Output: {}".format(output))
