@@ -827,14 +827,17 @@ def translate_stage_3(labels, code):
     new_code = []
     for line in code:
         if "data" in line:
+            new_data = []
             for i, piece in enumerate(line["data"]):
                 if isinstance(piece, str):
                     if (piece not in labels) or (labels[piece] < 0):
                         raise Exception("Метка `{}` - не определена".format(piece))
 
-                    line["data"] = line["data"][:i] + ByteCodeFile.number_to_big_endian(labels[piece], DataTypeDirectives.WORD.bytes_count) + line["data"][i + 1:]
+                    new_data.extend(ByteCodeFile.number_to_big_endian(labels[piece], DataTypeDirectives.WORD.bytes_count))
+                else:
+                    new_data.append(line["data"][i])
 
-            new_code.append({"mem_address": line["mem_address"], "byte_code": line["data"], "term": line["term"]})
+            new_code.append({"mem_address": line["mem_address"], "byte_code": new_data, "term": line["term"]})
 
     new_code.sort(key=lambda v: v["mem_address"])
 
@@ -893,6 +896,6 @@ def main(source, target):
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) == 3, "Wrong arguments: translator_asm.py <input_file> <target_file>"
+    # assert len(sys.argv) == 3, "Wrong arguments: translator_asm.py <input_file> <target_file>"
     _, source, target = sys.argv
     main(source, target)

@@ -1,53 +1,42 @@
-Start address = 294
-Code lines count = 50 | 0x32
+Start address = 290
+Code lines count = 39 | 0x27
 <address> - <hex asm> - <mnemonic>
-0000 - 1 88 0 40 - v0_input: word v0_handler, 0x40
-0004 - 1 bc 0 40 - v1_output: word v1_handler, 0x40
-0020 - 3 e8 - wait_input_limit: word 1000
-0022 - 3 e8 - wait_output_limit: word 1000
-0024 - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - input_buffer: by... 0, 0, 0, 0, 0, 0
-0124 - 0 - buffer_tail: byte 0
-0125 - 0 - buffer_head: byte 0
-0126 - 7 - start.wait_in: di
-0127 - ff 80 81 40 ff 0 10 - mov byte r1, [0x10]
-012e - b0 81 ff 0 0 - cmp r1, 0
-0133 - 42 ff 1 73 - jne start.read
-0137 - b0 40 ff 0 20 ff 0 0 - cmp [wait_input_limit], 0
-013f - 47 ff 1 4b - jl start.wait_out
-0143 - a2 40 ff 0 20 ff 0 1 - sub [wait_input_limit], 1
-014b - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
-0152 - b0 81 ff 0 0 - cmp r1, 0
-0157 - 42 ff 1 7d - jne start.write
-015b - b0 40 ff 0 22 ff 0 0 - cmp [wait_output_limit], 0
-0163 - 47 ff 1 87 - jl exit
-0167 - a2 40 ff 0 22 ff 0 1 - sub [wait_output_limit], 1
-016f - 40 ff 1 26 - jmp start.wait_in
-0173 - 6 - ei
-0174 - 52 ff 0 0 - int 0
-0178 - 7 - di
-0179 - 40 ff 1 26 - jmp start.wait
-017d - 6 - ei
-017e - 52 ff 0 1 - int 1
-0182 - 7 - di
-0183 - 40 ff 1 26 - jmp start
-0187 - 1 - halt
-0188 - 7 - v0_handler: di
-0189 - 80 81 40 ff 1 25 - mov r1, [buffer_head]
-018f - ff 80 81 40 ff 0 11 - mov byte r1, [0x11]
-0196 - 80 41 ff 0 24 81 81 - mov [input_buffer+r1], r1
-019d - b0 81 ff 0 0 - cmp r1, 0
-01a2 - 42 ff 1 ae - jne v0_handler.end
-01a6 - 80 40 ff 0 20 ff ff ff - mov [wait_input_limit], -1
-01ae - 62 40 ff 1 25 - inc [buffer_head]
-01b3 - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
-01bb - 9 - iret
-01bc - 7 - v1_handler: di
-01bd - 80 82 40 ff 1 24 - mov r2, [buffer_tail]
-01c3 - 80 81 41 ff 0 24 82 - mov r1, [input_buffer+r2]
-01ca - ff 80 40 ff 0 13 81 - mov byte [0x13], r1
-01d1 - b0 81 ff 0 0 - cmp r1, 0
-01d6 - 42 ff 1 e2 - jne v1_handler.end
-01da - 80 40 ff 0 22 ff ff ff - mov [wait_output_limit], -1
-01e2 - 62 40 ff 1 24 - inc [buffer_tail]
-01e7 - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
-01ef - 9 - iret
+0000 - 1 ae - v0_input: word v0_handler
+0002 - 1 c9 - v1_output: word v1_handler
+0020 - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - input_buffer: by... 0, 0, 0, 0, 0, 0
+0120 - 0 - buffer_tail: byte 0
+0121 - 0 - buffer_head: byte 0
+0122 - 6 - start: ei
+0123 - ff 80 81 40 ff 0 10 - mov byte r1, [0x10]
+012a - ff b0 81 ff 0 - cmp byte r1, 0
+012f - 42 ff 1 55 - jne start.read
+0133 - ff b0 40 ff 1 20 40 ff 1 21 - cmp byte [buffer... ], [buffer_head]
+013d - 43 ff 1 23 - jg start.wait_in
+0141 - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
+0148 - ff b0 81 ff 0 - cmp byte r1, 0
+014d - 42 ff 1 77 - jne start.write
+0151 - 40 ff 1 ad - jmp exit
+0155 - 52 ff 0 0 - int 0
+0159 - ff 80 81 40 ff 1 21 - mov byte r1, [buffer_head]
+0160 - ff 62 40 ff 1 21 - inc byte [buffer_head]
+0166 - ff b0 41 ff 0 20 81 ff 0 - cmp byte [input_buffer+r1], 0
+016f - 41 ff 1 33 - jz start.wait_out
+0173 - 40 ff 1 33 - jmp start.wait_out
+0177 - ff 80 81 40 ff 1 20 - mov byte r1, [buffer_tail]
+017e - ff b0 41 ff 0 20 81 ff 0 - cmp byte [input_buffer+r1], 0
+0187 - 41 ff 1 ad - jz exit
+018b - 52 ff 0 1 - int 1
+018f - ff 80 81 40 ff 1 20 - mov byte r1, [buffer_tail]
+0196 - ff 62 40 ff 1 20 - inc byte [buffer_tail]
+019c - ff b0 41 ff 0 20 81 ff 0 - cmp byte [input_buffer+r1], 0
+01a5 - 41 ff 1 ad - jz exit
+01a9 - 40 ff 1 23 - jmp start.wait_in
+01ad - 1 - halt
+01ae - ff 80 81 40 ff 1 21 - mov byte r1, [buffer_head]
+01b5 - ff 80 41 ff 0 20 81 40 ff 0 11 - mov byte [input_... ffer+r1], [0x11]
+01c0 - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
+01c8 - 9 - iret
+01c9 - ff 80 81 40 ff 1 20 - mov byte r1, [buffer_tail]
+01d0 - ff 80 40 ff 0 13 41 ff 0 20 81 - mov byte [0x13],... input_buffer+r1]
+01db - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+01e3 - 9 - iret

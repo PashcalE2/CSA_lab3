@@ -17,7 +17,6 @@ import io
 import logging
 import os
 import tempfile
-import unittest
 
 import machine
 import pytest

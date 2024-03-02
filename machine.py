@@ -2,8 +2,7 @@ import logging
 import re
 import sys
 
-from isa import ByteCodeFile, InstructionSet, InstructionPrefix, InstructionPostfix, Registers, DataTypeDirectives, \
-    ProgramStateRegister
+from isa import ByteCodeFile, InstructionSet, InstructionPrefix, InstructionPostfix, Registers, ProgramStateRegister
 from translator import Parser
 
 
@@ -27,6 +26,11 @@ class InputDevice(Device):
 
     def live(self):
         super().live()
+
+        if self.current_token >= len(self.buffer):
+            self.ready = 0
+            return
+
         time, token = self.buffer[self.current_token]
         if self.current_time >= time:
             if self.ready == 0:
@@ -34,7 +38,7 @@ class InputDevice(Device):
             self.ready = 1
 
     def get_current_token(self):
-        if (self.current_token >= len(self.buffer)) or (self.ready == 0):
+        if self.current_token >= len(self.buffer):
             return 0
 
         time, token = self.buffer[self.current_token]
@@ -50,12 +54,16 @@ class OutputDevice(Device):
         if self.ready == 0:
             return
 
-        # self.ready = 0
+        self.ready = 0
         self.buffer.append(token)
 
     def live(self):
         super().live()
-        self.ready = 1
+
+        if len(self.buffer) > 0 and self.buffer[-1] == 0:
+            self.ready = 0
+        else:
+            self.ready = 1
 
 
 class DeviceMux:
@@ -1534,7 +1542,7 @@ class ControlUnit:
             return " ".join(subs)
 
         state_repr = "TICK: {:8} | PS: {} | IP: {} | AR: {} | MEM[AR]: {} | DR: {} | AC: {} | BR1: {} | BR2: {} | BR3: {} | CR: {} | " \
-                     "DN: {} | ABR1: {} | ABR2: {} | ABR3: {} | SP: {} | MEM[SP:SP+1]: {} | R1: {} | R2: {} | R3: {} | R4: {} | R5: {} | R6: {} | R7: {}".format(
+                     "DN: {} | ABR1: {} | ABR2: {} | ABR3: {} | SP: {} | MEM[SP]: {} | R1: {} | R2: {} | R3: {} | R4: {} | R5: {} | R6: {} | R7: {}".format(
             self._instruction_tick,
             ps_to_str(self.data_path.program_state),
             to_hex(self.data_path.instruction_pointer.get(), 2),
@@ -1551,7 +1559,7 @@ class ControlUnit:
             to_hex(self.data_path.address_buffer_register2.get(), 2),
             to_hex(self.data_path.address_buffer_register3.get(), 2),
             to_hex(self.data_path.stack_pointer.get(), 2),
-            to_hex((self.data_path.memory[self.data_path.stack_pointer.get()] << 8) + self.data_path.memory[(self.data_path.stack_pointer.get() + 1) & 0xFFFF], 2),
+            to_hex(self.data_path.memory[self.data_path.stack_pointer.get()], 1),
             to_hex(self.data_path.r1.get(), 4),
             to_hex(self.data_path.r2.get(), 4),
             to_hex(self.data_path.r3.get(), 4),
@@ -1602,14 +1610,14 @@ def simulation(start_address: int, code: list, input_schedule: list, limit: int)
         logging.info("Машина остановилась")
     except Exception as e:
         logging.warning("{}".format(e))
+        raise e
 
-    logging.debug("%s", control_unit)
     if instr_counter >= limit:
         logging.warning("Предел превышен")
 
     output = "".join([chr(char) for char in output_device.get_buffer()])
 
-    return output, instr_counter, control_unit.current_tick()
+    return output, instr_counter
 
 
 class InputScheduler:
@@ -1642,19 +1650,22 @@ def main(code_file, input_file):
     if len(input_schedule) == 0:
         input_schedule = [(0, 0)]
 
-    output, instr_counter, ticks = simulation(
+    output, instr_counter = simulation(
         start_address,
         code,
         input_schedule=input_schedule,
-        limit=1000,
+        limit=500,
     )
 
-    print("{}".format(output))
-    print("instr_counter: ", instr_counter, "ticks:", ticks)
+    print("Output: {}".format(output))
+    print("instr_counter: {}".format(instr_counter))
 
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
-    assert len(sys.argv) == 4, "Wrong arguments: p_machine.py <code_file> <input_file>"
-    _, code_file, input_file = sys.argv
+    # assert len(sys.argv) == 3, "Wrong arguments: p_machine.py <code_file> <input_file>"
+    # _, code_file, input_file = sys.argv
+
+    code_file, input_file = "byte_code/cat.o", "input/input.txt"
+
     main(code_file, input_file)

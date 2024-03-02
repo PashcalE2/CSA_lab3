@@ -319,14 +319,31 @@ class InstructionSet:
 
         JMP.mnemonic: JMP,
 
-        JL.mnemonic: JL,
-        JLE.mnemonic: JLE,
-
         JE.mnemonic: JE,
+        JZ.mnemonic: JZ,
         JNE.mnemonic: JNE,
+        JNZ.mnemonic: JNZ,
 
         JG.mnemonic: JG,
         JGE.mnemonic: JGE,
+
+        JA.mnemonic: JA,
+        JAE.mnemonic: JAE,
+
+        JL.mnemonic: JL,
+        JLE.mnemonic: JLE,
+
+        JB.mnemonic: JB,
+        JC.mnemonic: JC,
+        JBE.mnemonic: JBE,
+
+        JS.mnemonic: JS,
+        JNS.mnemonic: JNS,
+
+        JNC.mnemonic: JNC,
+
+        JV.mnemonic: JV,
+        JNV.mnemonic: JNV,
 
         LOOP.mnemonic: LOOP,
         PUSH.mnemonic: PUSH,

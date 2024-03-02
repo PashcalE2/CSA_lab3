@@ -7,6 +7,7 @@ sent_char: byte 0
 
 start:
     mov byte r2, 0
+    ei
 .wait:
     mov byte r1, [0x12]
     cmp byte r1, 0

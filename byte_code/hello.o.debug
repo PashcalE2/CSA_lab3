@@ -1,23 +1,20 @@
 Start address = 47
-Code lines count = 20 | 0x14
+Code lines count = 17 | 0x11
 <address> - <hex asm> - <mnemonic>
-0000 - 0 5d - v0_input: word v0_handler
+0000 - 0 5b - v0_input: word v0_handler
 0020 - 68 65 6c 6c 6f 2... 6f 72 6c 64 21 0 - msg: byte 'hello, world!', 0
 002e - 0 - sent_char: byte 0
 002f - ff 80 82 ff 0 - mov byte r2, 0
-0034 - 7 - start.wait: di
+0034 - 6 - ei
 0035 - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
 003c - ff b0 81 ff 0 - cmp byte r1, 0
 0041 - 42 ff 0 49 - jne start.int
-0045 - 40 ff 0 34 - jmp start.wait
-0049 - 6 - ei
-004a - 52 ff 0 0 - int 0
-004e - 7 - di
-004f - ff b0 41 ff 0 20 82 ff 0 - cmp byte [msg+r2], 0
-0058 - 42 ff 0 34 - jne start.wait
-005c - 1 - halt
-005d - 7 - di
-005e - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
-0066 - ff 80 40 ff 0 13 41 ff 0 20 82 - mov byte [0x13], [msg+r2]
-0071 - 62 82 - inc r2
-0073 - 9 - iret
+0045 - 40 ff 0 35 - jmp start.wait
+0049 - 52 ff 0 0 - int 0
+004d - ff b0 41 ff 0 20 82 ff 0 - cmp byte [msg+r2], 0
+0056 - 42 ff 0 35 - jne start.wait
+005a - 1 - halt
+005b - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+0063 - ff 80 40 ff 0 13 41 ff 0 20 82 - mov byte [0x13], [msg+r2]
+006e - 62 82 - inc r2
+0070 - 9 - iret

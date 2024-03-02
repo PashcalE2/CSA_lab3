@@ -1,73 +1,59 @@
 org 0
-v0_input: word v0_handler, 0x40
-v1_output: word v1_handler, 0x40
+v0_input: word v0_handler
+v1_output: word v1_handler
 
 org 0x20
-
-wait_input_limit: word 1000
-wait_output_limit: word 1000
-
-input_buffer: byte 0x100 dup(0)
+input_buffer: byte 256 dup(0)
 buffer_tail: byte 0
 buffer_head: byte 0
 
-start:
-.wait:
-.wait_in: di
+start: ei
+.wait_in:
     mov byte r1, [0x10]
-    cmp r1, 0
-    jne start.read
-    cmp [wait_input_limit], 0
-    jl start.wait_out
-    sub [wait_input_limit], 1
-
+    cmp byte r1, 0
+    jne start.read ; i ready
+    ; i is not ready, check out
 .wait_out:
-    mov byte r1, [0x12]
-    cmp r1, 0
-    jne start.write
-    cmp [wait_output_limit], 0
-    jl exit
-    sub [wait_output_limit], 1
+    cmp byte [buffer_tail], [buffer_head] ; can read from buffer ?
+    jg start.wait_in
 
-    jmp start.wait_in
+    mov byte r1, [0x12]
+    cmp byte r1, 0
+    jne start.write ; o ready
+    jmp exit
 
 .read:
-    ei
     int 0
-    di
-    jmp start.wait
+    mov byte r1, [buffer_head]
+    inc byte [buffer_head]
+    cmp byte [input_buffer+r1], 0 ; read 0
+    jz start.wait_out ; in is over
+    jmp start.wait_out
 
 .write:
-    ei
+    mov byte r1, [buffer_tail] ; where our char
+    cmp byte [input_buffer+r1], 0
+    jz exit
+
     int 1
-    di
-    jmp start
+    mov byte r1, [buffer_tail] ;
+    inc byte [buffer_tail] ; next is
+    cmp byte [input_buffer+r1], 0 ; wrote 0
+    jz exit
+    jmp start.wait_in
 
 exit:
     halt
 
-v0_handler: di
-    mov r1, [buffer_head]
-    mov byte r1, [0x11]
-    mov [input_buffer+r1], r1
-    cmp r1, 0
-    jne v0_handler.end
-    mov word [wait_input_limit], -1
-.end:
-    inc [buffer_head]
+v0_handler:
+    mov byte r1, [buffer_head] ; where to save
+    mov byte [input_buffer+r1], [0x11] ; save to buffer
     mov byte [0x10], 0
     iret
 
-v1_handler: di
-    mov r2, [buffer_tail]
-    mov r1, [input_buffer+r2]
-    mov byte [0x13], r1
-    cmp r1, 0
-    jne v1_handler.end
-    mov word [wait_output_limit], -1
-
-.end:
-    inc [buffer_tail]
+v1_handler:
+    mov byte r1, [buffer_tail] ; where our char
+    mov byte [0x13], [input_buffer+r1] ; write to out
     mov byte [0x12], 0
     iret
 
