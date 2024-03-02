@@ -58,8 +58,7 @@ def test_translator_and_machine(golden, caplog):
     caplog.set_level(logging.DEBUG)
 
     import os
-    print(os.path.dirname(os.path.realpath(__file__)))
-
+    print(os.walk('.'))
     with tempfile.TemporaryDirectory() as tmpdirname:
         source = os.path.join(tmpdirname, "source.asm")
         input_stream = os.path.join(tmpdirname, "input.txt")
