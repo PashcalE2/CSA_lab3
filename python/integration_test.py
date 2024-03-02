@@ -74,13 +74,13 @@ def test_translator_and_machine(golden, caplog):
                 print("============================================================")
                 machine.main(target, input_stream)
             except Exception as e:
-                print("Неудача")
+                print("Ошибка: {}".format(e))
 
         '''
         with open(target_debug, "r", encoding="utf-8") as file:
             code = file.read()
         assert code == golden.out["out_code_debug"]
         '''
-        
+
         assert stdout.getvalue() == golden.out["out_stdout"]
         assert caplog.text == golden.out["out_log"]
