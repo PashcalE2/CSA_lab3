@@ -31,12 +31,11 @@ comment ::= ";" <any symbols except "\n">
 import re
 import sys
 
-from isa import Opcode, Term, op_has_no_args, DataTypeDirective, OrgDirective, Registers, \
-    op_has_1_arg, InstructionPostfix, op_has_2_args, op1_arg_for_w, InstructionPrefix, ByteCodeFile
+from isa import InstructionSet, Term, DataTypeDirectives, OrgDirective, Registers, InstructionPostfix, InstructionPrefix, ByteCodeFile
 
 
-def data_dict(type, value):
-    return {"type": type, "value": value}
+def data_dict(datatype, value):
+    return {"type": datatype, "value": value}
 
 
 def str_to_number(number):
@@ -44,12 +43,12 @@ def str_to_number(number):
     if neg:
         number = number[1:]
 
-    if number[:2] == "0x":
-        value, base = int(number, 16), 16
-    else:
-        value, base = int(number), 10
-
-    if (base == 16) and (hex(value) != number) or (base == 10) and (str(value) != number):
+    try:
+        if (len(number) > 2) and (number[:2] == "0x"):
+            value, base = int(number, 16), 16
+        else:
+            value, base = int(number), 10
+    except Exception:
         raise Exception("Странное какое-то число: {}".format(number))
 
     return value, base
@@ -70,103 +69,71 @@ class Parser:
     """
 
     org_directive = OrgDirective.ORG
-    type_directives = [DataTypeDirective.BYTE, DataTypeDirective.WORD]
-    number_regex = re.compile(r"([\-\+]?0x[\da-f]+|\d+)")
+    type_directives_names = list(DataTypeDirectives.directive_by_name.keys())
+    number_regex = re.compile(r"([\-\+]?(0x[\da-f]+|\d+))")
     string_regex = re.compile(r"(\'[^\']+\')")
     label_name_regex = re.compile(r"([_\.a-z][_\.\da-z]*)")
-    org_directive_regex = re.compile(r"org *(0x[\da-f]+|\d+)")
-    general_purpose_registers = Registers.code_to_register_list
+    org_directive_regex = re.compile(r"org\s*(0x[\da-f]+|\d+)")
+    general_purpose_registers = {value.name for value in Registers.code_to_general_register_dict.values()}
 
-    available_mnemonics = {
-        "nop": Opcode.NOP.value,
-        "halt": Opcode.HALT.value,
-        "clc": Opcode.CLC.value,
-        "cmc": Opcode.CMC.value,
-        "pushf": Opcode.PUSHF.value,
-        "popf": Opcode.POPF.value,
-        "ei": Opcode.EI.value,
-        "di": Opcode.DI.value,
-        "ret": Opcode.RET.value,
-        "iret": Opcode.IRET.value,
-        "not": Opcode.NOT.value,
-        "neg": Opcode.NEG.value,
-        "inc": Opcode.INC.value,
-        "dec": Opcode.DEC.value,
-        "rol": Opcode.ROL.value,
-        "ror": Opcode.ROR.value,
-        "asl": Opcode.ASL.value,
-        "asr": Opcode.ASR.value,
-        "sxtb": Opcode.SXTB.value,
-        "swab": Opcode.SWAB.value,
-        "jmp": Opcode.JMP.value,
-        "jl": Opcode.JL.value,
-        "jle": Opcode.JLE.value,
-        "je": Opcode.JE.value,
-        "jne": Opcode.JNE.value,
-        "jg": Opcode.JG.value,
-        "jge": Opcode.JGE.value,
-        "loop": Opcode.LOOP.value,
-        "push": Opcode.PUSH.value,
-        "pop": Opcode.POP.value,
-        "call": Opcode.CALL.value,
-        "int": Opcode.INT.value,
-        "mov": Opcode.MOV.value,
-        "and": Opcode.AND.value,
-        "or": Opcode.OR.value,
-        "xor": Opcode.XOR.value,
-        "add": Opcode.ADD.value,
-        "adc": Opcode.ADC.value,
-        "sub": Opcode.SUB.value,
-        "mul": Opcode.MUL.value,
-        "div": Opcode.DIV.value,
-        "cmp": Opcode.CMP.value,
-        "swap": Opcode.SWAP.value,
-        "poly": Opcode.POLY.value
+    mnemonic_to_instruction_dict = InstructionSet.mnemonic_to_instruction_dict
+
+    opcode_to_mnemonic_dict = {
+        value.opcode: value.mnemonic for value in mnemonic_to_instruction_dict.values()
     }
 
-    key_words = set(list(available_mnemonics.keys()) + list(org_directive) + list(type_directives))
+    key_words = set(list(mnemonic_to_instruction_dict.keys()) + list(org_directive) + list(type_directives_names))
 
     @staticmethod
-    def is_string(symbol):
-        match = Parser.string_regex.match(symbol)
+    def is_string(string):
+        if not isinstance(string, str):
+            return False
+
+        match = Parser.string_regex.match(string)
 
         if match is None:
             return False
 
-        return match.string == symbol
+        return match.string == string
 
     @staticmethod
-    def is_number(symbol):
-        match = Parser.number_regex.match(symbol)
+    def is_number(string):
+        if not isinstance(string, str):
+            return False
+
+        match = Parser.number_regex.match(string)
 
         if match is None:
             return False
 
-        return match.string == symbol
+        return match.string == string
 
     @staticmethod
-    def is_hex(symbol):
-        return Parser.is_number(symbol) and symbol[:2] == "0x"
+    def is_hex(string):
+        return Parser.is_number(string) and string[:2] == "0x"
 
     @staticmethod
-    def is_dec(symbol):
-        return Parser.is_number(symbol) and symbol[:2] != "0x"
+    def is_dec(string):
+        return Parser.is_number(string) and string[:2] != "0x"
 
     @staticmethod
-    def is_label_name(symbol):
-        symbol = str(symbol)
+    def is_label_name(string):
+        string = str(string)
 
-        match = Parser.label_name_regex.match(symbol)
+        match = Parser.label_name_regex.match(string)
 
         if match is None:
             return False
 
-        return match.string == symbol
+        return match.string == string
 
     @staticmethod
-    def symbol_to_opcode(symbol):
-        """Отображение операторов исходного кода в коды операций."""
-        return Parser.available_mnemonics.get(symbol)
+    def mnemonic_to_instruction(mnemonic: str):
+        return Parser.mnemonic_to_instruction_dict.get(mnemonic)
+
+    @staticmethod
+    def opcode_to_mnemonic(opcode: int):
+        return Parser.opcode_to_mnemonic_dict.get(opcode)
 
     @staticmethod
     def try_find_label_name(line: str):
@@ -191,7 +158,7 @@ class Parser:
         return label_name + (":" if add_colon else ""), line[1:].lstrip(" ")
 
     @staticmethod
-    def try_find_type_directive(line: str):
+    def try_find_type_directive_name(line: str):
         line = line.lstrip(" ")
 
         pos = line.find(" ")
@@ -199,12 +166,12 @@ class Parser:
         if pos < 0:
             raise Exception("После директивы данных ожидался пробел")
 
-        directive = line[:pos]
+        directive_name = line[:pos]
 
-        if directive not in Parser.type_directives:
-            raise Exception("`{}` - не директива, можно так = {}".format(directive, Parser.type_directives))
+        if directive_name not in Parser.type_directives_names:
+            raise Exception("`{}` - не директива, можно так = {}".format(directive_name, Parser.type_directives_names))
 
-        return directive, line[pos:].lstrip(" ")
+        return directive_name, line[pos:].lstrip(" ")
 
     @staticmethod
     def try_find_number(line: str):
@@ -305,27 +272,26 @@ class Parser:
         return args * number, line[1:].lstrip(" ")
 
     @staticmethod
-    def try_find_instruction(line: str):
+    def try_find_mnemonic(line: str):
         pos = line.find(" ")
         if pos < 0:
             pos = len(line)
 
-        instruction = line[:pos]
+        mnemonic = line[:pos]
 
-        if instruction not in Parser.available_mnemonics:
-            raise Exception("`{}` не мнемоника инструкции".format(instruction))
+        if mnemonic not in Parser.mnemonic_to_instruction_dict:
+            raise Exception("`{}` не мнемоника инструкции".format(mnemonic))
 
-        return instruction, line[pos:].lstrip(" ")
+        return mnemonic, line[pos:].lstrip(" ")
 
     @staticmethod
     def try_find_instruction_args(line: str):
         args = []
-        found_one = False
+        found = False
 
         try:
-            directive, line = Parser.try_find_type_directive(line)
-            args.append(directive)
-            found_one = True
+            directive_name, line = Parser.try_find_type_directive_name(line)
+            args.append(directive_name)
         except Exception as e:
             pass
 
@@ -333,39 +299,39 @@ class Parser:
             base, index_sign, index, scale_factor, offset_sign, offset, line = Parser.try_find_memory_addressing(line)
             args.append({"base": base, "index_sign": index_sign, "index": index, "scale_factor": scale_factor,
                          "offset_sign": offset_sign, "offset": offset})
-            found_one = True
+            found = True
         except Exception as e:
             pass
 
         try:
             reg, line = Parser.try_find_register(line)
             args.append(reg)
-            found_one = True
+            found = True
         except Exception as e:
             pass
 
         try:
             label_name, line = Parser.try_find_label_name(line)
             args.append(label_name)
-            found_one = True
+            found = True
         except Exception as e:
             pass
 
         try:
             number, line = Parser.try_find_number(line)
             args.append(number)
-            found_one = True
+            found = True
         except Exception as e:
             pass
 
         try:
             string, line = Parser.try_find_string(line)
             args.append(string)
-            found_one = True
+            found = True
         except Exception as e:
             pass
 
-        if not found_one:
+        if not found:
             raise Exception("После инструкции ожидались аргументы")
 
         if len(line) > 0:
@@ -413,15 +379,22 @@ class Parser:
         return "+", line
 
     @staticmethod
+    def try_find_scale_sign(line: str):
+        if line[0] == "*":
+            return line[0], line[1:].lstrip(" ")
+
+        raise Exception("После индекса ожидается `* scale`")
+
+    @staticmethod
     def try_find_array_index(line: str):
         sign, line = Parser.try_find_addressing_sign(line)
         index, line = Parser.try_find_register(line)
-        scale_factor, line = Parser.try_find_number(line[1:])
+        _, line = Parser.try_find_scale_sign(line)
+        scale_factor, line = Parser.try_find_number(line)
 
         number = int(scale_factor)
-        max_number = InstructionPostfix.get_scale_factor_max_pow()
-        if (number <= 0) or (number > 1 << max_number):
-            raise Exception("`{}` - плохой `scale factor`, можно: {}".format(scale_factor, [(1 << i) for i in range(int(max_number) + 1)]))
+        if number not in InstructionPostfix.valid_scale_factors:
+            raise Exception("`{}` - плохой `scale factor`, можно: {}".format(scale_factor, InstructionPostfix.valid_scale_factors))
 
         return sign, index, scale_factor, line
 
@@ -483,10 +456,10 @@ class Parser:
         except Exception as e:
             label = None
 
-        directive, line = Parser.try_find_type_directive(line)
+        directive_name, line = Parser.try_find_type_directive_name(line)
         args, line = Parser.try_find_data_args(line)
 
-        return label, directive, args
+        return label, directive_name, args
 
     @staticmethod
     def parse_instruction(line: str):
@@ -496,11 +469,8 @@ class Parser:
             label = None
             pass
 
-        directive = DataTypeDirective.WORD
-        instruction, line = Parser.try_find_instruction(line)
-
-        if op_has_no_args(Parser.symbol_to_opcode(instruction)):
-            return label, directive, instruction, []
+        directive_name = DataTypeDirectives.WORD.name
+        mnemonic, line = Parser.try_find_mnemonic(line)
 
         args = []
         try:
@@ -508,39 +478,40 @@ class Parser:
         except Exception as e:
             pass
 
-        if DataTypeDirective.BYTE in args:
-            # если есть хоть одна директива `byte` то все операнды вынуждены приводиться к байту
-            # это не будет касаться подсчета адреса, для них всегда `word`
-            args = [arg for arg in args if arg not in Parser.type_directives]
-            directive = DataTypeDirective.BYTE
+        for type_dir in Parser.type_directives_names:
+            if type_dir in args:
+                # если есть хоть одна директива начиная с `byte` и далее, то все операнды вынуждены приводиться к ней (самой меньшей)
+                # или например если меньшая директива = `word`...
+                args = [arg for arg in args if arg not in Parser.type_directives_names]
+                directive_name = type_dir
 
-        return label, directive, instruction, args
+        return label, directive_name, mnemonic, args
 
 
-def arg_is_number_register_label_or_memory(arg):
-    is_memory = isinstance(arg, dict)
+def arg_is_number_register_label_or_addressing(arg):
+    is_addressing = isinstance(arg, dict)
 
-    if is_memory:
-        return False, False, False, is_memory
+    if is_addressing:
+        return False, False, False, is_addressing
 
     is_number = Parser.is_number(arg)
     is_register = arg in Parser.general_purpose_registers
     is_label = (not is_register) and Parser.is_label_name(arg)
 
-    return is_number, is_register, is_label, is_memory
+    return is_number, is_register, is_label, is_addressing
 
 
-def encode_instruction_arg(directive, arg):
-    max_uint = DataTypeDirective.get_max_uint(directive)
+def encode_instruction_arg(directive_name, arg):
+    max_uint = DataTypeDirectives.get_directive_by_name(directive_name).max_uint
     data = []
 
-    is_number, is_register, is_label, is_memory = arg_is_number_register_label_or_memory(arg)
+    is_number, is_register, is_label, is_memory = arg_is_number_register_label_or_addressing(arg)
 
     if is_label:
-        data.append(data_dict(DataTypeDirective.BYTE, InstructionPostfix.ArgIsImmediate))
-        data.append(data_dict(DataTypeDirective.WORD, arg))
+        data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPostfix.ArgIsImmediate))
+        data.append(data_dict(DataTypeDirectives.WORD.name, arg))
     elif is_number:
-        data.append(data_dict(DataTypeDirective.BYTE, InstructionPostfix.ArgIsImmediate))
+        data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPostfix.ArgIsImmediate))
 
         number, base = str_to_number(arg)
         if number > max_uint:
@@ -551,27 +522,27 @@ def encode_instruction_arg(directive, arg):
         if arg[0] == "-":
             number = max_uint + 1 - number
 
-        data.append(data_dict(directive, number))
+        data.append(data_dict(directive_name, number))
     elif is_register:
-        data.append(data_dict(DataTypeDirective.BYTE, InstructionPostfix.encode_register(arg)))
+        data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPostfix.encode_register(arg)))
     else:
         has_offset = arg["offset"] is not None
         has_index = arg["index"] is not None
-        scale_factor = (arg["scale_factor"] is not None) and (arg["scale_factor"] == "2")
+        scale_factor = (arg["scale_factor"] is not None)
         offset_sign = (arg["offset_sign"] is not None) and (arg["offset_sign"] == "-")
         index_sign = (arg["index_sign"] is not None) and (arg["index_sign"] == "-")
 
-        data.append(data_dict(DataTypeDirective.BYTE, InstructionPostfix.encode_addressing_mode(has_offset, has_index, scale_factor, offset_sign, index_sign)))
+        data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPostfix.encode_addressing_mode(has_offset, has_index, scale_factor, offset_sign, index_sign)))
 
-        byte_code, arg["base"] = encode_instruction_arg(DataTypeDirective.WORD, arg["base"])
+        byte_code, arg["base"] = encode_instruction_arg(DataTypeDirectives.WORD.name, arg["base"])
         data.extend(byte_code)
 
         if has_index:
-            byte_code, arg["index"] = encode_instruction_arg(DataTypeDirective.WORD, arg["index"])
+            byte_code, arg["index"] = encode_instruction_arg(DataTypeDirectives.WORD.name, arg["index"])
             data.extend(byte_code)
 
         if has_offset:
-            byte_code, arg["offset"] = encode_instruction_arg(DataTypeDirective.WORD, arg["offset"])
+            byte_code, arg["offset"] = encode_instruction_arg(DataTypeDirectives.WORD.name, arg["offset"])
             data.extend(byte_code)
 
         arg_str = arg["base"]
@@ -650,15 +621,16 @@ def translate_stage_1(text):
             code.append({"mem_address": mem_address, "is_org": True, "term": Term(line_num, token)})
             continue
         except Exception as e:
-            pass
+            print("Ошибка при проверке `org`: {}".format(e))
 
         try:
             # это размещение данных в памяти?
-            label, directive, args = Parser.parse_data_def(token)
+            label, directive_name, args = Parser.parse_data_def(token)
+            directive = DataTypeDirectives.get_directive_by_name(directive_name)
 
             label, last_root_label = check_new_label(label, last_root_label)
 
-            max_uint = DataTypeDirective.get_max_uint(directive)
+            max_uint = directive.max_uint
 
             # соберем информацию для корректного размещения `byte` и `word` в памяти
             data = []
@@ -666,7 +638,7 @@ def translate_stage_1(text):
                 if arg[0] == arg[-1] == "'":
                     # строчка
                     for char in arg[1:-1]:
-                        data.append(data_dict(DataTypeDirective.BYTE, ord(char)))
+                        data.append(data_dict(DataTypeDirectives.BYTE.name, ord(char)))
                 elif Parser.is_number(arg):
                     # число `byte` или `word`
                     number, base = str_to_number(arg)
@@ -680,24 +652,25 @@ def translate_stage_1(text):
                     if arg[0] == "-":
                         number = max_uint + 1 - number
 
-                    data.append(data_dict(directive, number))
+                    data.append(data_dict(directive_name, number))
                 else:
                     # метка, потом заменим
-                    data.append(data_dict(DataTypeDirective.WORD, arg))
+                    data.append(data_dict(DataTypeDirectives.WORD.name, arg))
 
-            mnemonic = "" if label is None else (label + ": ")
-            mnemonic += directive + " "
-            mnemonic += ", ".join(args)
+            term_mnemonic = "" if label is None else (label + ": ")
+            term_mnemonic += directive_name + " "
+            term_mnemonic += ", ".join(args)
 
-            code.append({"mem_address": 0, "is_data": True, "label": label, "data": data, "term": Term(line_num, mnemonic.strip(" "))})
+            code.append({"mem_address": 0, "is_data": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
             continue
         except Exception as e:
-            # не размещение данных
-            pass
+            print("Ошибка при проверки размещения данных: {}".format(e))
 
         try:
             # это инструкция?
-            label, directive, instruction, args = Parser.parse_instruction(token)
+            label, directive_name, mnemonic, args = Parser.parse_instruction(token)
+            directive = DataTypeDirectives.get_directive_by_name(directive_name)
+            instruction = Parser.mnemonic_to_instruction(mnemonic)
 
             label, last_root_label = check_new_label(label, last_root_label)
 
@@ -707,72 +680,55 @@ def translate_stage_1(text):
 
             data = []
 
-            if directive == DataTypeDirective.BYTE:
-                data.append(data_dict(DataTypeDirective.BYTE, InstructionPrefix.BYTE))
+            if directive == DataTypeDirectives.BYTE:
+                data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPrefix.BYTE))
+            elif directive == DataTypeDirectives.DWORD:
+                data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPrefix.DWORD))
 
-            max_uint = DataTypeDirective.get_max_uint(directive)
+            op = instruction.opcode
+            data.append(data_dict(DataTypeDirectives.BYTE.name, op))
 
-            op = Parser.symbol_to_opcode(instruction)
-            data.append(data_dict(DataTypeDirective.BYTE, op))
+            args_count = len(instruction.args_types)
 
-            if op_has_no_args(op):
-                pass
-            elif op_has_1_arg(op):
-                # инструкция требует 1 аргумент
+            if instruction.variable_args_count:
+                # инструкция принимает переменное число аргументов
+                args_count = len(args)
 
-                if len(args) != 1:
-                    raise Exception("Инструкция {} требует ровно 1 аргумент".format(instruction))
+                if args_count > 0xFF:
+                    raise Exception("{} - слишком много аргументов, максимум: {}".format(args_count, 0xFF))
 
-                arg = args[0]
-                is_number, is_register, is_label, is_memory = arg_is_number_register_label_or_memory(arg)
-                if op1_arg_for_w(op) and (is_number or is_label):
-                    raise Exception(
-                        "Инструкция {} требует аргумент для записи (регистр или память)".format(instruction))
+                data.extend(ByteCodeFile.number_to_big_endian(args_count, DataTypeDirectives.BYTE.bytes_count))
 
-                byte_code, args[0] = encode_instruction_arg(directive, arg)
+            for i in range(args_count):
+                arg_is_number, arg_is_register, arg_is_label, arg_is_addressing = arg_is_number_register_label_or_addressing(args[i])
+
+                arg_type = InstructionSet.form_arg_type(arg_is_number, arg_is_label, arg_is_register)
+                type_list_idx = i
+
+                if type_list_idx >= len(instruction.args_types):
+                    type_list_idx = len(instruction.args_types) - 1
+
+                if not InstructionSet.check_type_is_valid(arg_type, instruction.args_types[type_list_idx]):
+                    raise Exception("Инструкция `{}` принимает аргументы следующих типов: {}\n#{} аргумент `{}` имеет тип: {}"
+                                    .format(mnemonic, InstructionSet.form_args_types_str(instruction.args_types, instruction.variable_args_count), i + 1, args[i], InstructionPostfix.arg_type_to_str[arg_type]))
+
+                byte_code, args[i] = encode_instruction_arg(directive_name, args[i])
                 data.extend(byte_code)
 
-            elif op_has_2_args(op):
-                # инструкция требует 2 аргумента
+            print(data)
+            is_correct, error_msg = instruction.validate_directive_and_args(directive, args)
+            if not is_correct:
+                raise Exception(error_msg)
 
-                if len(args) != 2:
-                    raise Exception("Инструкция {} требует ровно 2 аргумента".format(instruction))
+            term_mnemonic = "" if label is None else (label + ": ")
+            term_mnemonic += mnemonic + " "
+            term_mnemonic += "" if (directive_name is None) or (directive_name == "word") else (directive_name + " ")
+            term_mnemonic += ", ".join(args)
 
-                arg1_is_number, arg1_is_register, arg1_is_label, arg1_is_memory = arg_is_number_register_label_or_memory(args[0])
-                if arg1_is_number or arg1_is_label:
-                    raise Exception("Инструкция {} требует первый аргумент для записи (регистр или память)".format(instruction))
-
-                byte_code, args[0] = encode_instruction_arg(directive, args[0])
-                data.extend(byte_code)
-
-                byte_code, args[1] = encode_instruction_arg(directive, args[1])
-                data.extend(byte_code)
-            else:
-                # инструкция требует N (1 байт) аргументов
-
-                data.extend(ByteCodeFile.number_to_big_endian(len(args), DataTypeDirective.get_bytes_count(DataTypeDirective.BYTE)))
-
-                arg1_is_number, arg1_is_register, arg1_is_label, arg1_is_memory = arg_is_number_register_label_or_memory(args[0])
-                if arg1_is_number or arg1_is_label:
-                    raise Exception("Инструкция {} требует первый аргумент для записи (регистр или память)".format(instruction))
-
-                byte_code, args[0] = encode_instruction_arg(directive, args[0])
-                data.extend(byte_code)
-
-                for key in range(1, len(args)):
-                    byte_code, args[key] = encode_instruction_arg(directive, args[key])
-                    data.extend(byte_code)
-
-            mnemonic = "" if label is None else (label + ": ")
-            mnemonic += instruction + " "
-            mnemonic += "" if (directive is None) or (directive == "word") else (directive + " ")
-            mnemonic += ", ".join(args)
-
-            code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data, "term": Term(line_num, mnemonic.strip(" "))})
+            code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
             continue
         except Exception as e:
-            # не инструкция xD
-            pass
+            print("Ошибка при проверке инструкции: {}".format(e))
 
         raise Exception("`{}` - не пойми че написано, вот как можно:"
                         "\nОрганизация памяти = org (number)"
@@ -801,6 +757,7 @@ def translate_stage_2(labels, code):
     labels_waiting_to_init = []
 
     for line in code:
+        print(line)
         if organize_next:
             mem_address = organize_address
             organize_next = False
@@ -811,29 +768,21 @@ def translate_stage_2(labels, code):
         elif ("is_data" in line) or ("is_instruction" in line):
             line["mem_address"] = mem_address
 
-            aligned_data = []
-            for i, piece in enumerate(line["data"]):
-                if piece["type"] == DataTypeDirective.BYTE:
-                    aligned_data.append(piece["value"])
+            byte_code = []
+            for piece in line["data"]:
+                if isinstance(piece, int):
+                    # количество аргументов для инструкций с переменным числом аргументов
+                    byte_code.append(piece)
                     mem_address += 1
-                else:
-                    # для `word` надо делать ВЫРАВНИВАНИЕ (пусть будет...)
-                    if mem_address & 0x0001 == 1:
-                        aligned_data.append(0)
-                        mem_address += 1
-                        # print("Выравнивание `word` на {}".format(hex(mem_address)))
-
-                    if i == 0:
-                        line["mem_address"] = mem_address
-
-                    if Parser.is_label_name(piece["value"]):
-                        aligned_data.append(piece["value"])
-                    else:
-                        aligned_data.extend(ByteCodeFile.number_to_big_endian(piece["value"], DataTypeDirective.get_bytes_count(piece["type"])))
-
+                elif Parser.is_label_name(piece["value"]):
+                    byte_code.append(piece["value"])
                     mem_address += 2
+                else:
+                    directive = DataTypeDirectives.directive_by_name.get(piece["type"])
+                    byte_code.extend(ByteCodeFile.number_to_big_endian(piece["value"], directive.bytes_count))
+                    mem_address += directive.bytes_count
 
-            line["data"] = aligned_data
+            line["data"] = byte_code
 
             if (line["label"] is not None) and (labels[line["label"]] < 0):
                 labels_waiting_to_init.append(line["label"])
@@ -865,7 +814,7 @@ def translate_stage_3(labels, code):
                     if (piece not in labels) or (labels[piece] < 0):
                         raise Exception("Метка `{}` - не определена".format(piece))
 
-                    line["data"] = line["data"][:i] + ByteCodeFile.number_to_big_endian(labels[piece], DataTypeDirective.get_bytes_count(DataTypeDirective.WORD)) + line["data"][i + 1:]
+                    line["data"] = line["data"][:i] + ByteCodeFile.number_to_big_endian(labels[piece], DataTypeDirectives.WORD.bytes_count) + line["data"][i + 1:]
 
             new_code.append({"mem_address": line["mem_address"], "byte_code": line["data"], "term": line["term"]})
 
@@ -911,7 +860,7 @@ def translate(text):
 
     print("\n".join([str(line) for line in code]))
 
-    return code
+    return labels["start"], code
 
 
 def main(source, target):
@@ -919,15 +868,15 @@ def main(source, target):
     with open(source, encoding="utf-8") as f:
         source = f.read().lower()
 
-    code = translate(source)
+    start_address, code = translate(source)
 
-    ByteCodeFile.write(target, code)
-    ByteCodeFile.write_debug(target + ".debug", code)
+    ByteCodeFile.write(target, start_address, code)
+    ByteCodeFile.write_debug(target + ".debug", start_address, code)
 
     print("source LoC:", len(source.split("\n")), "asm instr:", len(code))
 
 
 if __name__ == "__main__":
-    # assert len(sys.argv) == 3, "Wrong arguments: translator_asm.py <input_file> <target_file>"
-    _, source, target = sys.argv, "./example/simple.txt", "./target/simple.o"
+    assert len(sys.argv) == 3, "Wrong arguments: translator_asm.py <input_file> <target_file>"
+    _, source, target = sys.argv
     main(source, target)

@@ -60,7 +60,7 @@ class Opcode(str, Enum):
     LEFT = "left"
     INC = "increment"
     DEC = "decrement"
-    INPUT = "input"
+    INPUT = "empty.txt"
     PRINT = "print"
 
     JMP = "jmp"

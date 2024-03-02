@@ -1,0 +1,6 @@
+
+data: word 0x0001
+
+start:
+    lcomb [data], r2, 3, 4, 5
+    halt

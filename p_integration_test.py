@@ -62,8 +62,8 @@ def test_translator_and_machine(golden, caplog):
     with tempfile.TemporaryDirectory() as tmpdirname:
         # Готовим имена файлов для входных и выходных данных.
         source = os.path.join(tmpdirname, "source.bf")
-        input_stream = os.path.join(tmpdirname, "input.txt")
-        target = os.path.join(tmpdirname, "target.o")
+        input_stream = os.path.join(tmpdirname, "empty.txt.txt")
+        target = os.path.join(tmpdirname, "byte_code.o")
 
         # Записываем входные данные в файлы. Данные берутся из теста.
         with open(source, "w", encoding="utf-8") as file:
@@ -100,7 +100,7 @@ class TestTranslatorAndMachine(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             source = "p_examples/hello.bf"
             target = os.path.join(tmpdirname, "asm.out")
-            input_stream = "p_examples/input.txt"
+            input_stream = "p_examples/empty.txt.txt"
 
             # Собираем весь стандартный вывод в переменную stdout.
             with contextlib.redirect_stdout(io.StringIO()) as stdout:
@@ -117,7 +117,7 @@ class TestTranslatorAndMachine(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             source = "p_examples/cat.bf"
             target = os.path.join(tmpdirname, "asm.out")
-            input_stream = "p_examples/input.txt"
+            input_stream = "p_examples/empty.txt.txt"
 
             with contextlib.redirect_stdout(io.StringIO()) as stdout:
                 # Собираем журнал событий по уровню INFO в переменную logs.
@@ -127,12 +127,12 @@ class TestTranslatorAndMachine(unittest.TestCase):
 
             assert (
                 stdout.getvalue()
-                == "source LoC: 1 prob2.txt instr: 6\nHello World from input!\n\ninstr_counter:  95 ticks: 168\n"
+                == "source LoC: 1 prob2.txt instr: 6\nHello World from empty.txt!\n\ninstr_counter:  95 ticks: 168\n"
             )
 
             assert logs.output == [
                 "WARNING:root:Input buffer is empty!",
-                "INFO:root:output_buffer: 'Hello World from input!\\n'",
+                "INFO:root:output_buffer: 'Hello World from empty.txt!\\n'",
             ]
 
     def test_cat_example_log(self):
@@ -149,30 +149,30 @@ class TestTranslatorAndMachine(unittest.TestCase):
             assert stdout.getvalue() == "source LoC: 1 prob2.txt instr: 6\nfoo\n\ninstr_counter:  15 ticks: 28\n"
 
             expect_log = [
-                "DEBUG:root:TICK:   0 PC:   0 ADDR:   0 MEM_OUT: 0 ACC: 0 \tinput  (','@1:1)",
-                "DEBUG:root:input: 'f'",
+                "DEBUG:root:TICK:   0 PC:   0 ADDR:   0 MEM_OUT: 0 ACC: 0 \tempty.txt  (','@1:1)",
+                "DEBUG:root:empty.txt: 'f'",
                 "DEBUG:root:TICK:   2 PC:   1 ADDR:   0 MEM_OUT: 102 ACC: 0 \tjz 5  ('['@1:2)",
                 "DEBUG:root:TICK:   4 PC:   2 ADDR:   0 MEM_OUT: 102 ACC: 102 \tprint  ('.'@1:3)",
                 "DEBUG:root:output: '' << 'f'",
-                "DEBUG:root:TICK:   6 PC:   3 ADDR:   0 MEM_OUT: 102 ACC: 102 \tinput  (','@1:4)",
-                "DEBUG:root:input: 'o'",
+                "DEBUG:root:TICK:   6 PC:   3 ADDR:   0 MEM_OUT: 102 ACC: 102 \tempty.txt  (','@1:4)",
+                "DEBUG:root:empty.txt: 'o'",
                 "DEBUG:root:TICK:   8 PC:   4 ADDR:   0 MEM_OUT: 111 ACC: 102 \tjmp 1  (']'@1:5)",
                 "DEBUG:root:TICK:   9 PC:   1 ADDR:   0 MEM_OUT: 111 ACC: 102 \tjz 5  ('['@1:2)",
                 "DEBUG:root:TICK:  11 PC:   2 ADDR:   0 MEM_OUT: 111 ACC: 111 \tprint  ('.'@1:3)",
                 "DEBUG:root:output: 'f' << 'o'",
-                "DEBUG:root:TICK:  13 PC:   3 ADDR:   0 MEM_OUT: 111 ACC: 111 \tinput  (','@1:4)",
-                "DEBUG:root:input: 'o'",
+                "DEBUG:root:TICK:  13 PC:   3 ADDR:   0 MEM_OUT: 111 ACC: 111 \tempty.txt  (','@1:4)",
+                "DEBUG:root:empty.txt: 'o'",
                 "DEBUG:root:TICK:  15 PC:   4 ADDR:   0 MEM_OUT: 111 ACC: 111 \tjmp 1  (']'@1:5)",
                 "DEBUG:root:TICK:  16 PC:   1 ADDR:   0 MEM_OUT: 111 ACC: 111 \tjz 5  ('['@1:2)",
                 "DEBUG:root:TICK:  18 PC:   2 ADDR:   0 MEM_OUT: 111 ACC: 111 \tprint  ('.'@1:3)",
                 "DEBUG:root:output: 'fo' << 'o'",
-                "DEBUG:root:TICK:  20 PC:   3 ADDR:   0 MEM_OUT: 111 ACC: 111 \tinput  (','@1:4)",
-                "DEBUG:root:input: '\\n'",
+                "DEBUG:root:TICK:  20 PC:   3 ADDR:   0 MEM_OUT: 111 ACC: 111 \tempty.txt  (','@1:4)",
+                "DEBUG:root:empty.txt: '\\n'",
                 "DEBUG:root:TICK:  22 PC:   4 ADDR:   0 MEM_OUT: 10 ACC: 111 \tjmp 1  (']'@1:5)",
                 "DEBUG:root:TICK:  23 PC:   1 ADDR:   0 MEM_OUT: 10 ACC: 111 \tjz 5  ('['@1:2)",
                 "DEBUG:root:TICK:  25 PC:   2 ADDR:   0 MEM_OUT: 10 ACC: 10 \tprint  ('.'@1:3)",
                 "DEBUG:root:output: 'foo' << '\\n'",
-                "DEBUG:root:TICK:  27 PC:   3 ADDR:   0 MEM_OUT: 10 ACC: 10 \tinput  (','@1:4)",
+                "DEBUG:root:TICK:  27 PC:   3 ADDR:   0 MEM_OUT: 10 ACC: 10 \tempty.txt  (','@1:4)",
                 "WARNING:root:Input buffer is empty!",
                 "INFO:root:output_buffer: 'foo\\n'",
             ]

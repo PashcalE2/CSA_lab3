@@ -54,10 +54,10 @@ class DataPath:
 
     - data_memory -- однопортовая, поэтому либо читаем, либо пишем.
 
-    - input/output -- токенизированная логика ввода-вывода. Не детализируется в
+    - empty.txt/output -- токенизированная логика ввода-вывода. Не детализируется в
       рамках модели.
 
-    - input -- чтение может вызвать остановку процесса моделирования, если буфер
+    - empty.txt -- чтение может вызвать остановку процесса моделирования, если буфер
       входных значений закончился.
 
     Реализованные методы соответствуют сигналам защёлкивания значений:
@@ -169,9 +169,9 @@ class DataPath:
                 raise EOFError()
             symbol = self.input_buffer.pop(0)
             symbol_code = ord(symbol)
-            assert -128 <= symbol_code <= 127, "input token is out of bound: {}".format(symbol_code)
+            assert -128 <= symbol_code <= 127, "empty.txt token is out of bound: {}".format(symbol_code)
             self.data_memory[self.data_address] = symbol_code
-            logging.debug("input: %s", repr(symbol))
+            logging.debug("empty.txt: %s", repr(symbol))
 
     def signal_output(self):
         """Вывести значение аккумулятора в порт вывода.
@@ -223,7 +223,7 @@ class ControlUnit:
                                      +----------+  zero   |
                                      |          |---------+
                                      | DataPath |
-                      input -------->|          |----------> output
+                  empty.txt -------->|          |----------> output
                                      +----------+
     ```
 
