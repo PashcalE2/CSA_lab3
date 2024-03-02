@@ -1,7 +1,32 @@
 in_source: |-
-  asm/hello.txt
+  org 0
+  v0_input: word v0_handler
+
+  org 0x20
+  msg: byte 'Hello, world!', 0
+  sent_char: byte 0
+
+  start:
+      mov byte r2, 0
+      ei
+  .wait:
+      mov byte r1, [0x12]
+      cmp byte r1, 0
+      jne start.int
+      jmp start.wait
+  .int:
+      int 0
+      cmp byte [msg+r2], 0
+      jne start.wait
+      halt
+
+  v0_handler:
+      mov byte [0x12], 0
+      mov byte [0x13], [msg+r2]
+      inc r2
+      iret
 in_stdin: |-
-  input/hello.txt
+  abcde
 out_code_debug: |-
   Start address = 47
   Code lines count = 17 | 0x11

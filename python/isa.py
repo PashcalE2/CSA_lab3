@@ -640,7 +640,6 @@ class ByteCodeFile:
 
         with open(filename, "wb") as file:
             file.write(ByteCodeFile.code_to_bytes(start_address, code))
-            file.close()
 
     @staticmethod
     def write_debug(filename, start_address, code):
@@ -658,7 +657,6 @@ class ByteCodeFile:
 
         with open(filename, "w", encoding="utf-8") as file:
             file.write(ByteCodeFile.code_to_debug(start_address, code))
-            file.close()
 
     @staticmethod
     def check_header(header: bytes):
@@ -686,7 +684,5 @@ class ByteCodeFile:
                 byte_code = [char for char in file.read(instruction_len)]
 
                 code.append({"mem_address": mem_address, "byte_code": byte_code})
-
-            file.close()
 
         return start_address, code

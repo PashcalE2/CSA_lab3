@@ -1645,7 +1645,6 @@ def main(code_file, input_file):
     with open(input_file, "r", encoding="utf-8") as file:
         input_text = file.read()
         input_schedule = InputScheduler.make_from(input_text)
-        file.close()
 
     if len(input_schedule) == 0:
         input_schedule = [(0, 0)]

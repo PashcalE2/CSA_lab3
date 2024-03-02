@@ -2,7 +2,7 @@ in_source: |-
   asm/hello_user_name.txt
 
 in_stdin: |-
-  input/hello_user_name.txt
+  [(10, 'J'), (20, 'a'), (21, 'c'), (32, 'k')]
 out_code_debug: |-
   a
 out_stdout: |
