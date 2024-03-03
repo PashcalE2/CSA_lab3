@@ -60,6 +60,7 @@ class Parser:
     org_directive: typing.ClassVar[str] = isa.OrgDirective.ORG
     type_directives_names: typing.ClassVar[list] = list(isa.DataTypeDirectives.directive_by_name.keys())
     number_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"([\-+]?(0x[\da-f]+|\d+))")
+    comment_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"(;.*)")
     string_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"(\'[^\']+\')")
     label_name_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"([_.a-z][_.\da-z]*)")
     org_directive_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"org\s*(0x[\da-f]+|\d+)")
@@ -77,9 +78,11 @@ class Parser:
                                           list(org_directive) + list(type_directives_names))
 
     class Exceptions:
-        class LabelError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class ParserError(Exception):
+            pass
+
+        class LabelError(ParserError):
+            pass
 
         class LocalLabelNameError(LabelError):
             def __init__(self, msg):
@@ -93,9 +96,8 @@ class Parser:
             def __init__(self, msg):
                 super().__init__("Ожидается `:` после имени метки: {}".format(msg))
 
-        class DataTypeDirectiveError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class DataTypeDirectiveError(ParserError):
+            pass
 
         class DataTypeDirectiveNoSpaceError(DataTypeDirectiveError):
             def __init__(self, msg):
@@ -105,33 +107,29 @@ class Parser:
             def __init__(self, msg):
                 super().__init__("Нет такого имени директивы типа данных: {}".format(msg))
 
-        class OrgDirectiveError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class OrgDirectiveError(ParserError):
+            pass
 
         class OrgDirectivePatternError(OrgDirectiveError):
             def __init__(self, msg):
                 super().__init__("Неправильная запись директивы `org` размещения данных: {}".format(msg))
 
-        class NumberError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class NumberError(ParserError):
+            pass
 
         class NumberPatternError(NumberError):
             def __init__(self, msg):
                 super().__init__("Не совпадает с паттерном числа-литерала: {}".format(msg))
 
-        class StringError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class StringError(ParserError):
+            pass
 
         class StringPatternError(StringError):
             def __init__(self, msg):
                 super().__init__("Не совпадает с паттерном строки-литерала: {}".format(msg))
 
-        class DupError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class DupError(ParserError):
+            pass
 
         class DupRepeatCountError(DupError):
             def __init__(self, msg):
@@ -149,7 +147,7 @@ class Parser:
             def __init__(self, msg):
                 super().__init__("Аругменты `dup` должны идти после скобки `(`: {}".format(msg))
 
-        class DataDefinitionError(Exception):
+        class DataDefinitionError(ParserError):
             def __init__(self, msg):
                 super().__init__(msg)
 
@@ -157,33 +155,29 @@ class Parser:
             def __init__(self, msg):
                 super().__init__("После директивы ожидались данные: {}".format(msg))
 
-        class InstructionArgsError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class InstructionArgsError(ParserError):
+            pass
 
         class InstructionNoArgsError(InstructionArgsError):
             def __init__(self, msg):
                 super().__init__("После инструкции ожидались аргументы: {}".format(msg))
 
-        class MnemonicError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class MnemonicError(ParserError):
+            pass
 
         class MnemonicNameError(MnemonicError):
             def __init__(self, msg):
                 super().__init__("`{}` не мнемоника инструкции".format(msg))
 
-        class RegisterError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class RegisterError(ParserError):
+            pass
 
         class RegisterNameError(RegisterError):
             def __init__(self, msg):
                 super().__init__("Ожидался регистр, регистры общего назначения = {}".format(msg))
 
-        class MemoryAddressingError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class MemoryAddressingError(ParserError):
+            pass
 
         class MemoryAddressingLeftBracketError(MemoryAddressingError):
             def __init__(self, msg):
@@ -253,6 +247,21 @@ class Parser:
         return match.string == string
 
     @staticmethod
+    def remove_comment(line: str):
+        match = Parser.comment_regex.search(line)
+
+        if match is None:
+            return None, line
+
+        pos = line.find("'")
+        while (pos < match.start(1)) and (pos != -1):
+            pos = line.find("'", pos + 1)
+            match = Parser.comment_regex.search(line, pos)
+            pos = line.find("'", pos + 1)
+
+        return line[match.start(1):], line[:match.start(1)].strip(" ")
+
+    @staticmethod
     def mnemonic_to_instruction(mnemonic: str):
         return Parser.mnemonic_to_instruction_dict[mnemonic]
 
@@ -275,10 +284,11 @@ class Parser:
 
     @staticmethod
     def parser_label_with_colon(line: str, add_colon=False):
+        line_copy = line[:]
         label_name, line = Parser.try_find_label_name(line)
 
         if len(line) == 0 or line[0] != ":":
-            raise Parser.Exceptions.LabelWithoutColonError(label_name + line)
+            raise Parser.Exceptions.LabelWithoutColonError(line_copy)
 
         return label_name + (":" if add_colon else ""), line[1:].lstrip(" ")
 
@@ -558,7 +568,7 @@ class Parser:
     @staticmethod
     def try_find_memory_addressing(line):
         line_copy = line[:]
-        if line[0] != "[":
+        if len(line) == 0 or line[0] != "[":
             raise Parser.Exceptions.MemoryAddressingLeftBracketError(line_copy)
 
         line = line[1:].lstrip(" ")
@@ -567,7 +577,7 @@ class Parser:
 
         try:
             index_sign, index, scale_factor, line = Parser.try_find_array_index(line)
-        except Parser.Exceptions.ScaleFactorError:
+        except (Parser.Exceptions.ScaleSignError, Parser.Exceptions.ScaleFactorError, Parser.Exceptions.RegisterError):
             index_sign, index, scale_factor = None, None, None
 
         try:
@@ -575,7 +585,7 @@ class Parser:
         except Parser.Exceptions.AddressOffsetError:
             offset_sign, offset = None, None
 
-        if line[0] != "]":
+        if len(line) == 0 or line[0] != "]":
             raise Parser.Exceptions.MemoryAddressingRightBracketError(line_copy)
 
         return base, index_sign, index, scale_factor, offset_sign, offset, line[1:].strip(" ")
@@ -706,9 +716,11 @@ class Translator:
     entry_point_label = "start"
 
     class Exceptions:
-        class LabelError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class TranslatorError(Exception):
+            pass
+
+        class LabelError(TranslatorError):
+            pass
 
         class LabelColonError(LabelError):
             def __init__(self, msg):
@@ -726,9 +738,8 @@ class Translator:
             def __init__(self, msg):
                 super().__init__("Метка `{}` - не определена".format(msg))
 
-        class InstructionError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+        class InstructionError(TranslatorError):
+            pass
 
         class InstructionArgsError(InstructionError):
             def __init__(self, instruction):
@@ -751,19 +762,19 @@ class Translator:
             def __init__(self, msg):
                 super().__init__("{}".format(msg))
 
-        class UnknownStatementError(Exception):
+        class UnknownStatementError(TranslatorError):
             def __init__(self, msg):
                 super().__init__(
                     "Не метка, не организация памяти, не определение данных и не инструкция: {}".format(msg)
                 )
 
-        class NoEntryPointError(Exception):
+        class NoEntryPointError(TranslatorError):
             def __init__(self, msg):
                 super().__init__(
                     "В коде должна присутствовать метка `{}`, откуда начнется исполнение программы".format(msg)
                 )
 
-        class MemoryLayersCrossingError(Exception):
+        class MemoryLayersCrossingError(TranslatorError):
             def __init__(self, first, second):
                 super().__init__("Данные/код перекрыли друг друга: \n{}\n{}".format(first, second))
 
@@ -800,34 +811,24 @@ class Translator:
 
         for line_num, token in enumerate(text.splitlines(), 1):
             token = token.strip(" ")
+            comment, token = Parser.remove_comment(token)
 
             if token == "":
                 continue
-
-            try:
-                label, line = Parser.parser_label_with_colon(token)
-
-                if len(line) > 0 and line[0] == ":":
-                    raise Translator.Exceptions.LabelColonError(token)
-
-                label, last_root_label = check_new_label(label, last_root_label)
-
-                code.append({"mem_address": 0, "label": label, "term": isa.Term(line_num, token)})
-                continue
-            except Parser.Exceptions.LabelError as e:
-                if print_err:
-                    print("Ошибка при проверке метки: {}".format(e))
 
             try:
                 mem_address, _ = Parser.parse_org(token.lower())
                 # это директива организации кода / данных в памяти
                 # следующий байт-код будет иметь этот адрес
                 mem_address, base = str_to_number(mem_address)
-                code.append({"mem_address": mem_address, "is_org": True, "term": isa.Term(line_num, token)})
+
+                term_mnemonic = "org " + str(mem_address)
+
+                code.append({"mem_address": mem_address, "is_org": True, "term": isa.Term(line_num, term_mnemonic)})
                 continue
-            except Parser.Exceptions.OrgDirectiveError as e:
+            except Parser.Exceptions.ParserError as e:
                 if print_err:
-                    print("Ошибка при проверке `org`: {}".format(e))
+                    print("Ошибка при проверке `org`: {}".format(e), type(e))
 
             try:
                 # это размещение данных в памяти?
@@ -870,9 +871,9 @@ class Translator:
                 code.append({"mem_address": 0, "is_data": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 continue
-            except Parser.Exceptions.DataTypeDirectiveError as e:
+            except Parser.Exceptions.ParserError as e:
                 if print_err:
-                    print("Ошибка при проверки размещения данных: {}".format(e))
+                    print("Ошибка при проверки размещения данных: {}".format(e), type(e))
 
             try:
                 # это инструкция?
@@ -942,9 +943,25 @@ class Translator:
                 code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 continue
-            except Translator.Exceptions.InstructionError as e:
+            except Parser.Exceptions.ParserError as e:
                 if print_err:
-                    print("Ошибка при проверке инструкции: {}".format(e))
+                    print("Ошибка при проверке инструкции: {}".format(e), type(e))
+
+            try:
+                label, line = Parser.parser_label_with_colon(token)
+
+                if len(line) > 0 and line[0] == ":":
+                    raise Translator.Exceptions.LabelColonError(token)
+
+                label, last_root_label = check_new_label(label, last_root_label)
+
+                term_mnemonic = label + ":"
+
+                code.append({"mem_address": 0, "label": label, "term": isa.Term(line_num, term_mnemonic)})
+                continue
+            except Parser.Exceptions.ParserError as e:
+                if print_err:
+                    print("Ошибка при проверке метки: {}".format(e), type(e))
 
             raise Translator.Exceptions.UnknownStatementError(token)
 
