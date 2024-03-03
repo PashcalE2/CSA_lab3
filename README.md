@@ -398,7 +398,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 Интерфейс командной строки: `translator.py <input_file> <target_file>`
 
-Реализовано в модуле: [translator](translator.py)
+Реализовано в модуле: [translator](python/translator.py)
 
 Этапы трансляции (функция `translate`):
 
@@ -431,7 +431,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 Интерфейс командной строки: `machine.py <machine_code_file> <input_file>`
 
-Реализовано в модуле: [machine](machine.py).
+Реализовано в модуле: [machine](python/machine.py).
 
 ### DataPath
 
@@ -465,7 +465,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 ![Схема](schemas/control_unit.png)
 
-Реализован в классе [ControlUnit](machine.py).
+Реализован в классе [ControlUnit](python/machine.py).
 
 - Hardwired (реализовано полностью на Python) в управляющих виде сигналов для DataPath.
 - метод `decode_and_execute_instruction` -- моделирует выполнение полного цикла инструкции.
@@ -488,12 +488,12 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 В качестве тестов использовано два алгоритма (в задании 3 + алгоритм по варианту):
 
-1. [hello world](asm/hello.txt).
-2. [cat](asm/cat.txt) -- программа `cat`, повторяем ввод на выводе.
-3. [hello user name](asm/hello_user_name.txt) -- программа `cat`, повторяем ввод на выводе.
+1. [hello world](python/golden/hello.txt).
+2. [cat](python/golden/cat.txt) -- программа `cat`, повторяем ввод на выводе.
+3. [hello user name](python/golden/hello_user_name.txt) -- программа `cat`, повторяем ввод на выводе.
 
-Интеграционные тесты реализованы тут [integration_test](golden_tests.py) через golden tests,
-конфигурация которых лежит в папке [golden](golden)
+Интеграционные тесты реализованы [тут](python/golden_tests.py) через golden tests,
+конфигурация которых лежит в папке [golden](python/golden)
 
 CI:
 
