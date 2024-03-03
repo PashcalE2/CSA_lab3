@@ -825,7 +825,7 @@ class Translator:
                 mem_address, base = str_to_number(mem_address)
                 code.append({"mem_address": mem_address, "is_org": True, "term": isa.Term(line_num, token)})
                 continue
-            except Parser.Exceptions.OrgDirectivePatternError as e:
+            except Parser.Exceptions.OrgDirectiveError as e:
                 if print_err:
                     print("Ошибка при проверке `org`: {}".format(e))
 
@@ -870,7 +870,7 @@ class Translator:
                 code.append({"mem_address": 0, "is_data": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 continue
-            except Parser.Exceptions.DataDefinitionError as e:
+            except Parser.Exceptions.DataTypeDirectiveError as e:
                 if print_err:
                     print("Ошибка при проверки размещения данных: {}".format(e))
 
