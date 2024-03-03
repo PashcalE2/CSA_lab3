@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 import translator
+import typing
 
 
 class Exceptions:
@@ -14,14 +15,14 @@ class Exceptions:
         def __init__(self, msg):
             super().__init__(
                 "Адрес метки входа: {}, не может быть меньше 0 или больше {}"
-                    .format(msg, hex(DataPath.memory_max_uint))
+                .format(msg, hex(DataPath.memory_max_uint))
             )
 
     class VarArgsCountError(StopModellingError):
         def __init__(self, msg):
             super().__init__(
                 "Переменное количество аргументов: {}, не может быть меньше 0 или больше {}"
-                    .format(msg, 255)
+                .format(msg, 255)
             )
 
 
@@ -95,7 +96,7 @@ class ALU:
     sign_bit = ((isa.Registers.register_max_size_in_bytes * 8) - 1)
     result_max_uint = isa.Registers.register_max_uint
     minus_one = result_max_uint
-    available_signals = [0, 1]
+    available_signals: typing.ClassVar[list] = [0, 1]
 
     def __init__(self, data_path):
         self.data_path = data_path
@@ -407,7 +408,7 @@ class DataPath:
 
     io_data_size_in_bytes = 1
     io_data_max_uint = (1 << io_data_size_in_bytes * 8) - 1
-    available_signals = [0, 1]
+    available_signals: typing.ClassVar[list] = [0, 1]
 
     def __init__(self, start_address, code, input_device, output_device):
         if not (0 <= start_address <= DataPath.memory_max_uint):
@@ -1599,7 +1600,7 @@ def simulation(start_address: int, code: list, input_schedule: list, limit: int)
     """
 
     input_device = InputDevice(input_schedule)
-    output_device = OutputDevice()
+    output_device = OutputDevice([])
 
     data_path = DataPath(start_address, code, input_device, output_device)
     control_unit = ControlUnit(data_path)
