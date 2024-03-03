@@ -66,6 +66,6 @@ jobs:
 
       - name: Run Ruff linters
         run: |
-          poetry run python -m ruff translator.py --fix
-          poetry run python -m ruff machine.py --fix
-          poetry run python -m ruff isa.py --fix
+          poetry run python -m ruff translator.py
+          poetry run python -m ruff machine.py
+          poetry run python -m ruff isa.py
