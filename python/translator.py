@@ -20,7 +20,7 @@ def str_to_number(number):
         else:
             value, base = int(number), 10
     except ValueError as e:
-        raise ValueError("Странное какое-то число: {}".format(number)) from e
+        raise ValueError("Не число: {}".format(number)) from e
 
     return value, base
 
@@ -713,6 +713,10 @@ class Translator:
             def __init__(self, msg):
                 super().__init__("Переопределение метки: {}".format(msg))
 
+        class LabelNotDefinedError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Метка `{}` - не определена".format(msg))
+
         class InstructionError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
@@ -801,8 +805,6 @@ class Translator:
 
                 code.append({"mem_address": 0, "label": label, "term": isa.Term(line_num, token)})
                 continue
-            except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
-                raise e
             except Parser.Exceptions.LabelError as e:
                 if print_err:
                     print("Ошибка при проверке метки: {}".format(e))
@@ -859,8 +861,6 @@ class Translator:
                 code.append({"mem_address": 0, "is_data": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 continue
-            except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
-                raise e
             except Parser.Exceptions.DataDefinitionError as e:
                 if print_err:
                     print("Ошибка при проверки размещения данных: {}".format(e))
@@ -933,8 +933,6 @@ class Translator:
                 code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 continue
-            except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
-                raise e
             except Translator.Exceptions.InstructionError as e:
                 if print_err:
                     print("Ошибка при проверке инструкции: {}".format(e))
@@ -1015,7 +1013,7 @@ class Translator:
                 for i, piece in enumerate(line["data"]):
                     if isinstance(piece, str):
                         if (piece not in labels) or (labels[piece] < 0):
-                            raise Exception("Метка `{}` - не определена".format(piece))
+                            raise Translator.Exceptions.LabelNotDefinedError(piece)
 
                         new_data.extend(isa.ByteCodeFile.number_to_big_endian(
                             labels[piece],
