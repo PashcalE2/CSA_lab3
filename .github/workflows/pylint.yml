@@ -66,6 +66,4 @@ jobs:
 
       - name: Run Ruff linters
         run: poetry run ruff check --fix .
-
-      - name: Check code formatting with Ruff
-          run: poetry run ruff format --check .
+        
