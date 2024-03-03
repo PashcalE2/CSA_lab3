@@ -65,7 +65,7 @@ class InputDevice(Device):
 
 
 class OutputDevice(Device):
-    def __init__(self, output_buffer: list = None):
+    def __init__(self, output_buffer: list):
         super().__init__(output_buffer)
         self.ready = 0
 
@@ -95,6 +95,7 @@ class ALU:
     sign_bit = ((isa.Registers.register_max_size_in_bytes * 8) - 1)
     result_max_uint = isa.Registers.register_max_uint
     minus_one = result_max_uint
+    available_signals = [0, 1]
 
     def __init__(self, data_path):
         self.data_path = data_path
@@ -228,18 +229,14 @@ class ALU:
         self.left = 0
         self.right = 0
 
-    def set_hidden_nzvc(self, n_flag: int = None, z_flag: int = None, v_flag: int = None, c_flag: int = None):
-        if n_flag is not None:
-            assert n_flag == 0 or n_flag == 1, "Сигналы принимают значения 0 или 1"
+    def set_hidden_nzvc(self, n_flag: int = -1, z_flag: int = -1, v_flag: int = -1, c_flag: int = -1):
+        if n_flag in self.available_signals:
             self.n_flag = n_flag & 1
-        if z_flag is not None:
-            assert z_flag == 0 or z_flag == 1, "Сигналы принимают значения 0 или 1"
+        if z_flag in self.available_signals:
             self.z_flag = z_flag & 1
-        if v_flag is not None:
-            assert v_flag == 0 or v_flag == 1, "Сигналы принимают значения 0 или 1"
+        if v_flag in self.available_signals:
             self.v_flag = v_flag & 1
-        if c_flag is not None:
-            assert c_flag == 0 or c_flag == 1, "Сигналы принимают значения 0 или 1"
+        if c_flag in self.available_signals:
             self.c_flag = c_flag & 1
 
     def clear_left(self):
@@ -297,7 +294,7 @@ class ALU:
         value = self.left if left else self.right
         sign = self.c_flag << self.sign_bit
         self.set_result(sign | (value >> 1))
-        self.set_hidden_nzvc(c_flag=value & 1)
+        self.set_hidden_nzvc(n_flag=-1, z_flag=-1, v_flag=-1, c_flag=value & 1)
 
     def signal_asl(self, left: bool):
         value = self.left if left else self.right
@@ -306,7 +303,7 @@ class ALU:
     def signal_asr(self, left: bool):
         value = self.left if left else self.right
         sign = (value >> self.sign_bit) & 1 << self.sign_bit
-        self.set_hidden_nzvc(c_flag=value & 1)
+        self.set_hidden_nzvc(n_flag=-1, z_flag=-1, v_flag=-1, c_flag=value & 1)
         self.set_result(sign | (value >> 1))
 
     def signal_sxt(self, is_byte: bool):
@@ -410,6 +407,7 @@ class DataPath:
 
     io_data_size_in_bytes = 1
     io_data_max_uint = (1 << io_data_size_in_bytes * 8) - 1
+    available_signals = [0, 1]
 
     def __init__(self, start_address, code, input_device, output_device):
         if not (0 <= start_address <= DataPath.memory_max_uint):
@@ -524,10 +522,13 @@ class DataPath:
     def signal_latch_ps(self):
         self.program_state.set(self.alu.get_result())
 
-    def signal_set_ps(self, w: int = None, i: int = None, ei: int = None):
-        self.program_state.set_ei(ei)
-        self.program_state.set_i(i)
-        self.program_state.set_w(w)
+    def signal_set_ps(self, w: int = -1, i: int = -1, ei: int = -1):
+        if ei in self.available_signals:
+            self.program_state.set_ei(ei)
+        if i in self.available_signals:
+            self.program_state.set_i(i)
+        if w in self.available_signals:
+            self.program_state.set_w(w)
 
     def signal_set_nzvc_from_alu(self, edit_n=True, edit_z=True, edit_v=True, edit_c=True):
         if edit_n:
@@ -748,7 +749,7 @@ class ControlUnit:
             self.data_path.signal_latch_ip()
 
         elif opcode == isa.InstructionSet.IRET.opcode:
-            # PS(I) = 0
+            # 0 => PS(I)
             self.data_path.program_state.set_i(0)
 
             # MEM[SP] => DR
@@ -913,7 +914,7 @@ class ControlUnit:
             self.data_path.alu.signal_set_dr_to_right()
 
         if sxt == 1:
-            # SXT[ALU]
+            # 1 => ALU(SXT)
             if directive == isa.InstructionPrefix.BYTE:
                 self.data_path.alu.signal_sxt(is_byte=True)
             elif directive == isa.InstructionPrefix.WORD:
