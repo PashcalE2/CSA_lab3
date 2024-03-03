@@ -1,4 +1,5 @@
 from collections import namedtuple
+import typing
 
 
 class OrgDirective:
@@ -17,8 +18,8 @@ class DataTypeDirectives:
     WORD = DataTypeDirective("word", 2)
     DWORD = DataTypeDirective("dword", 4)
 
-    directives = [BYTE, WORD, DWORD]
-    directive_by_name = {value.name: value for value in directives}
+    directives: typing.ClassVar[list] = [BYTE, WORD, DWORD]
+    directive_by_name: typing.ClassVar[dict] = {value.name: value for value in directives}
 
     @staticmethod
     def get_directive_by_name(name):
@@ -67,53 +68,53 @@ class InstructionPostfix:
     ArgIsRegister = 0x80
     """
     1 | 0 | 0 | 0 | 0 | x | x | x
-    
+
     6 регистров можно закодировать последовательностью в 3 бит
     """
 
     ArgsAreMemoryAddressing = 0x40
     """
     0 | 1 | is | os | s | s | i | o
-    
+
     4 вида адресации можно закодировать в 2 бит
-    
+
     scale_factor = 2 ^ s
-    
+
     я не знаю зачем, но пусть будет:
-    
+
     бит is == 0 => знак индекса "+"
-    
+
     бит is == 1 => знак индекса "-" (предварительно взять доп. код)
-    
+
     бит os == 0 => знак смещения "+"
-    
+
     бит os == 1 => знак смещения "-" (предварительно взять доп. код)
     """
 
-    arg_type_to_str = {
+    arg_type_to_str: typing.ClassVar[dict] = {
         ArgIsImmediate: "I",
         ArgIsRegister: "R",
         ArgsAreMemoryAddressing: "M"
     }
 
-    OffsetAddressingFlag = 0x1
-    IndexAddressingFlag = 0x2
-    OffsetSignFlag = 0x8
-    IndexSignFlag = 0x10
+    OffsetAddressingFlag: typing.ClassVar[int] = 0x1
+    IndexAddressingFlag: typing.ClassVar[int] = 0x2
+    OffsetSignFlag: typing.ClassVar[int] = 0x8
+    IndexSignFlag: typing.ClassVar[int] = 0x10
 
-    valid_scale_factors = [value.bytes_count for value in DataTypeDirectives.directives]
+    valid_scale_factors: typing.ClassVar[list] = [value.bytes_count for value in DataTypeDirectives.directives]
 
     @staticmethod
     def like_arg_type(byte: int):
         byte = (byte & 0xC0) >> 6
         if byte == 0x3:
             return InstructionPostfix.ArgIsImmediate
-        elif byte == 0x2:
+        if byte == 0x2:
             return InstructionPostfix.ArgIsRegister
-        elif byte == 0x1:
+        if byte == 0x1:
             return InstructionPostfix.ArgsAreMemoryAddressing
 
-        return byte
+        return -1
 
     @staticmethod
     def get_arg_type_str(arg_type: set):
@@ -218,10 +219,18 @@ class InstructionSet:
     В первый аргумент точно будем писать (может еще читать), из остальных - только читать
     """
 
-    arg_is_only_register = {InstructionPostfix.ArgIsRegister}
-    arg_is_writeable = {InstructionPostfix.ArgIsRegister, InstructionPostfix.ArgsAreMemoryAddressing}
-    arg_is_any = {InstructionPostfix.ArgIsImmediate, InstructionPostfix.ArgIsRegister,
-                  InstructionPostfix.ArgsAreMemoryAddressing}
+    arg_is_only_register: typing.ClassVar[dict] = {InstructionPostfix.ArgIsRegister}
+
+    arg_is_writeable: typing.ClassVar[dict] = {
+        InstructionPostfix.ArgIsRegister,
+        InstructionPostfix.ArgsAreMemoryAddressing
+    }
+
+    arg_is_any: typing.ClassVar[dict] = {
+        InstructionPostfix.ArgIsImmediate,
+        InstructionPostfix.ArgIsRegister,
+        InstructionPostfix.ArgsAreMemoryAddressing
+    }
 
     # Инструкции без аргументов (10)
     NOP = Instruction("nop", 0x00, [])
@@ -303,7 +312,7 @@ class InstructionSet:
         len(args) % 2 == 1, "Требует нечетное количество элементов: c0 + c1x1 + ..."
     ))
 
-    mnemonic_to_instruction_dict = {
+    mnemonic_to_instruction_dict: typing.ClassVar[dict] = {
         NOP.mnemonic: NOP,
         HALT.mnemonic: HALT,
         CLC.mnemonic: CLC,
@@ -367,7 +376,7 @@ class InstructionSet:
         LCOMB.mnemonic: LCOMB
     }
 
-    opcode_to_instruction_dict = {
+    opcode_to_instruction_dict: typing.ClassVar[dict] = {
         value.opcode: value for value in mnemonic_to_instruction_dict.values()
     }
 
@@ -422,10 +431,10 @@ class Register:
         self.value = 0
         self.is_left = is_left
 
-    def set(self, value: int):
+    def set_value(self, value: int):
         self.value = value & self.max_uint
 
-    def get(self):
+    def get_value(self):
         return self.value
 
 
@@ -441,60 +450,55 @@ class DataRegister(Register):
 
 
 class ProgramStateRegister(Register):
+    available_signals = [0, 1]
+
     def __init__(self, name, code, byte_size, is_left):
         super().__init__(name, code, byte_size, is_left)
 
-    def set_w(self, w: int = None):
-        if w is not None:
-            assert w == 0 or w == 1, "Сигналы принимают значения 0 или 1"
+    def set_w(self, w: int = -1):
+        if w in self.available_signals:
             self.value = (self.value & 0x7F) | (w << 6)
 
     def get_w(self):
         return (self.value >> 6) & 1
 
-    def set_i(self, i: int = None):
-        if i is not None:
-            assert i == 0 or i == 1, "Сигналы принимают значения 0 или 1"
+    def set_i(self, i: int = -1):
+        if i in self.available_signals:
             self.value = (self.value & 0x5F) | (i << 5)
 
     def get_i(self):
         return (self.value >> 5) & 1
 
-    def set_ei(self, ei: int = None):
-        if ei is not None:
-            assert ei == 0 or ei == 1, "Сигналы принимают значения 0 или 1"
+    def set_ei(self, ei: int = -1):
+        if ei in self.available_signals:
             self.value = (self.value & 0x6F) | (ei << 4)
 
     def get_ei(self):
         return (self.value >> 4) & 1
 
-    def set_n(self, n: int = None):
-        if n is not None:
-            assert n == 0 or n == 1, "Сигналы принимают значения 0 или 1"
+    def set_n(self, n: int = -1):
+        if n in self.available_signals:
             self.value = (self.value & 0x77) | (n << 3)
 
     def get_n(self):
         return (self.value >> 3) & 1
 
-    def set_z(self, z: int = None):
-        if z is not None:
-            assert z == 0 or z == 1, "Сигналы принимают значения 0 или 1"
+    def set_z(self, z: int = -1):
+        if z in self.available_signals:
             self.value = (self.value & 0x7B) | (z << 2)
 
     def get_z(self):
         return (self.value >> 2) & 1
 
-    def set_v(self, v: int = None):
-        if v is not None:
-            assert v == 0 or v == 1, "Сигналы принимают значения 0 или 1"
+    def set_v(self, v: int = -1):
+        if v in self.available_signals:
             self.value = (self.value & 0x7D) | (v << 1)
 
     def get_v(self):
         return (self.value >> 1) & 1
 
-    def set_c(self, c: int = None):
-        if c is not None:
-            assert c == 0 or c == 1, "Сигналы принимают значения 0 или 1"
+    def set_c(self, c: int = -1):
+        if c in self.available_signals:
             self.value = (self.value & 0x7E) | c
 
     def get_c(self):
@@ -510,8 +514,8 @@ class Registers:
     w | i | ei | n | z | v | c
     """
 
-    register_max_size_in_bytes = DataTypeDirectives.DWORD.bytes_count
-    register_max_uint = (1 << register_max_size_in_bytes * 8) - 1
+    register_max_size_in_bytes: typing.ClassVar[int] = DataTypeDirectives.DWORD.bytes_count
+    register_max_uint: typing.ClassVar[int] = (1 << register_max_size_in_bytes * 8) - 1
 
     # Регистры общего назначения (8)
     SP = Register("sp", 0, DataTypeDirectives.WORD.bytes_count, False)
@@ -545,9 +549,9 @@ class Registers:
     CR = Register("cr", -1, DataTypeDirectives.WORD.bytes_count, False)
     PS = ProgramStateRegister("ps", -1, DataTypeDirectives.BYTE.bytes_count, False)
 
-    general_registers_list = [SP, R1, R2, R3, R4, R5, R6, R7]
-    code_to_general_register_dict = {value.code: value for value in general_registers_list}
-    general_register_name_to_code_dict = {value.name: value.code for value in code_to_general_register_dict.values()}
+    general_registers_list: typing.ClassVar[list] = [SP, R1, R2, R3, R4, R5, R6, R7]
+    code_to_general_register_dict: typing.ClassVar[dict] = {value.code: value for value in general_registers_list}
+    general_register_name_to_code_dict: typing.ClassVar[dict] = {value.name: value.code for value in code_to_general_register_dict.values()}
 
     @staticmethod
     def code_to_general_register(code: int):
@@ -578,11 +582,11 @@ class ByteCodeFile:
 
     """
 
-    int_header = [ord(char) for char in "Pavel_CISC_ASM_code_file\n"]
-    bytes_header = bytes(int_header)
+    int_header: typing.ClassVar[list] = [ord(char) for char in "Pavel_CISC_ASM_code_file\n"]
+    bytes_header: typing.ClassVar[bytes] = bytes(int_header)
 
-    max_debug_sub_str_len = 16
-    max_debug_str_len = max_debug_sub_str_len * 2
+    max_debug_sub_str_len: typing.ClassVar[int] = 16
+    max_debug_str_len: typing.ClassVar[int] = max_debug_sub_str_len * 2
 
     @staticmethod
     def number_to_big_endian(number: int, bytes_count: int):

@@ -254,7 +254,7 @@ class Parser:
 
     @staticmethod
     def mnemonic_to_instruction(mnemonic: str):
-        return Parser.mnemonic_to_instruction_dict.get(mnemonic)
+        return Parser.mnemonic_to_instruction_dict.get_value(mnemonic)
 
     @staticmethod
     def opcode_to_mnemonic(opcode: int):
@@ -989,7 +989,7 @@ class Translator:
                         byte_code.append(piece["value"])
                         mem_address += 2
                     else:
-                        directive = isa.DataTypeDirectives.directive_by_name.get(piece["type"])
+                        directive = isa.DataTypeDirectives.directive_by_name.get_value(piece["type"])
                         byte_code.extend(isa.ByteCodeFile.number_to_big_endian(piece["value"], directive.bytes_count))
                         mem_address += directive.bytes_count
 

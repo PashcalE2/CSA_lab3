@@ -110,67 +110,67 @@ class ALU:
         self.c_flag = 0
 
     def signal_set_ac_to_left(self):
-        self.left = self.data_path.ac.get()
+        self.left = self.data_path.ac.get_value()
 
     def signal_set_br1_to_left(self):
-        self.left = self.data_path.buffer_register1.get()
+        self.left = self.data_path.buffer_register1.get_value()
 
     def signal_set_abr1_to_left(self):
-        self.left = self.data_path.address_buffer_register1.get()
+        self.left = self.data_path.address_buffer_register1.get_value()
 
     def signal_set_abr2_to_left(self):
-        self.left = self.data_path.address_buffer_register2.get()
+        self.left = self.data_path.address_buffer_register2.get_value()
 
     def signal_set_r1_to_left(self):
-        self.left = self.data_path.r1.get()
+        self.left = self.data_path.r1.get_value()
 
     def signal_set_r2_to_left(self):
-        self.left = self.data_path.r2.get()
+        self.left = self.data_path.r2.get_value()
 
     def signal_set_r3_to_left(self):
-        self.left = self.data_path.r3.get()
+        self.left = self.data_path.r3.get_value()
 
     def signal_set_r4_to_left(self):
-        self.left = self.data_path.r4.get()
+        self.left = self.data_path.r4.get_value()
 
     def signal_set_r5_to_right(self):
-        self.right = self.data_path.r5.get()
+        self.right = self.data_path.r5.get_value()
 
     def signal_set_r6_to_right(self):
-        self.right = self.data_path.r6.get()
+        self.right = self.data_path.r6.get_value()
 
     def signal_set_r7_to_right(self):
-        self.right = self.data_path.r7.get()
+        self.right = self.data_path.r7.get_value()
 
     def signal_set_abr3_to_right(self):
-        self.right = self.data_path.address_buffer_register3.get()
+        self.right = self.data_path.address_buffer_register3.get_value()
 
     def signal_set_dn_to_right(self):
-        self.right = self.data_path.destination_register.get()
+        self.right = self.data_path.destination_register.get_value()
 
     def signal_set_br2_to_right(self):
-        self.right = self.data_path.buffer_register2.get()
+        self.right = self.data_path.buffer_register2.get_value()
 
     def signal_set_br3_to_right(self):
-        self.right = self.data_path.buffer_register3.get()
+        self.right = self.data_path.buffer_register3.get_value()
 
     def signal_set_ip_to_right(self):
-        self.right = self.data_path.instruction_pointer.get()
+        self.right = self.data_path.instruction_pointer.get_value()
 
     def signal_set_ar_to_right(self):
-        self.right = self.data_path.address_register.get()
+        self.right = self.data_path.address_register.get_value()
 
     def signal_set_cr_to_right(self):
-        self.right = self.data_path.command_register.get()
+        self.right = self.data_path.command_register.get_value()
 
     def signal_set_dr_to_right(self):
-        self.right = self.data_path.data_register.get()
+        self.right = self.data_path.data_register.get_value()
 
     def signal_set_sp_to_right(self):
-        self.right = self.data_path.stack_pointer.get()
+        self.right = self.data_path.stack_pointer.get_value()
 
     def signal_set_ps_to_right(self):
-        self.right = self.data_path.program_state.get()
+        self.right = self.data_path.program_state.get_value()
 
     def get_nzvc_by_result(self, result):
         n_flag = ((result >> self.sign_bit) & 1) == 1
@@ -353,7 +353,7 @@ class AddressCodeDecoder:
         self.data_path = data_path
 
     def signal_read(self):
-        address = self.data_path.address_register.get()
+        address = self.data_path.address_register.get_value()
         if 0x10 <= address < 0x14:
             # Устройства ввода вывода
             is_status_byte = (address & 1) == 0
@@ -374,7 +374,7 @@ class AddressCodeDecoder:
             self.data_path.input_device_mux.data = self.data_path.memory[address]
 
     def signal_write(self):
-        address = self.data_path.address_register.get()
+        address = self.data_path.address_register.get_value()
         if 0x10 <= address < 0x14:
             # Устройства ввода вывода
             is_status_byte = (address & 1) == 0
@@ -445,7 +445,7 @@ class DataPath:
         self.destination_register = isa.Registers.DN
 
         self.instruction_pointer = isa.Registers.IP
-        self.instruction_pointer.set(start_address)
+        self.instruction_pointer.set_value(start_address)
 
         self.address_register = isa.Registers.AR
         self.command_register = isa.Registers.CR
@@ -461,67 +461,67 @@ class DataPath:
         self.output_device_mux = DeviceMux()
 
     def signal_latch_r1(self):
-        self.r1.set(self.alu.get_result())
+        self.r1.set_value(self.alu.get_result())
 
     def signal_latch_r2(self):
-        self.r2.set(self.alu.get_result())
+        self.r2.set_value(self.alu.get_result())
 
     def signal_latch_r3(self):
-        self.r3.set(self.alu.get_result())
+        self.r3.set_value(self.alu.get_result())
 
     def signal_latch_r4(self):
-        self.r4.set(self.alu.get_result())
+        self.r4.set_value(self.alu.get_result())
 
     def signal_latch_r5(self):
-        self.r5.set(self.alu.get_result())
+        self.r5.set_value(self.alu.get_result())
 
     def signal_latch_r6(self):
-        self.r6.set(self.alu.get_result())
+        self.r6.set_value(self.alu.get_result())
 
     def signal_latch_r7(self):
-        self.r7.set(self.alu.get_result())
+        self.r7.set_value(self.alu.get_result())
 
     def signal_latch_abr1(self):
-        self.address_buffer_register1.set(self.alu.get_result())
+        self.address_buffer_register1.set_value(self.alu.get_result())
 
     def signal_latch_abr2(self):
-        self.address_buffer_register2.set(self.alu.get_result())
+        self.address_buffer_register2.set_value(self.alu.get_result())
 
     def signal_latch_abr3(self):
-        self.address_buffer_register3.set(self.alu.get_result())
+        self.address_buffer_register3.set_value(self.alu.get_result())
 
     def signal_latch_dn(self):
-        self.destination_register.set(self.alu.get_result())
+        self.destination_register.set_value(self.alu.get_result())
 
     def signal_latch_ac(self):
-        self.ac.set(self.alu.get_result())
+        self.ac.set_value(self.alu.get_result())
 
     def signal_latch_br1(self):
-        self.buffer_register1.set(self.alu.get_result())
+        self.buffer_register1.set_value(self.alu.get_result())
 
     def signal_latch_br2(self):
-        self.buffer_register2.set(self.alu.get_result())
+        self.buffer_register2.set_value(self.alu.get_result())
 
     def signal_latch_br3(self):
-        self.buffer_register3.set(self.alu.get_result())
+        self.buffer_register3.set_value(self.alu.get_result())
 
     def signal_latch_ip(self):
-        self.instruction_pointer.set(self.alu.get_result())
+        self.instruction_pointer.set_value(self.alu.get_result())
 
     def signal_latch_ar(self):
-        self.address_register.set(self.alu.get_result())
+        self.address_register.set_value(self.alu.get_result())
 
     def signal_latch_cr(self):
-        self.command_register.set(self.alu.get_result())
+        self.command_register.set_value(self.alu.get_result())
 
     def signal_latch_dr(self):
-        self.data_register.set(self.alu.get_result())
+        self.data_register.set_value(self.alu.get_result())
 
     def signal_latch_sp(self):
-        self.stack_pointer.set(self.alu.get_result())
+        self.stack_pointer.set_value(self.alu.get_result())
 
     def signal_latch_ps(self):
-        self.program_state.set(self.alu.get_result())
+        self.program_state.set_value(self.alu.get_result())
 
     def signal_set_ps(self, w: int = -1, i: int = -1, ei: int = -1):
         if ei in self.available_signals:
@@ -699,7 +699,7 @@ class ControlUnit:
         self.data_path.signal_latch_cr()
 
         directive = isa.InstructionPrefix.WORD
-        opcode = self.data_path.command_register.get() & 0xFF
+        opcode = self.data_path.command_register.get_value() & 0xFF
 
         if (opcode == isa.InstructionPrefix.BYTE) or (opcode == isa.InstructionPrefix.WORD) or (
                 opcode == isa.InstructionPrefix.DWORD):
@@ -717,7 +717,7 @@ class ControlUnit:
             self.data_path.alu.signal_or()
             self.data_path.signal_latch_cr()
 
-            opcode = self.data_path.command_register.get() & 0xFF
+            opcode = self.data_path.command_register.get_value() & 0xFF
 
         return directive, opcode
 
@@ -1418,7 +1418,7 @@ class ControlUnit:
         self.data_path.signal_latch_br3()
 
         if (self.data_path.program_state.get_z() == 1) or (self.data_path.program_state.get_n() == 1):
-            raise Exceptions.VarArgsCountError(self.data_path.data_register.get())
+            raise Exceptions.VarArgsCountError(self.data_path.data_register.get_value())
 
         if opcode == isa.InstructionSet.LCOMB.opcode:
             # запоминаем первый аргумент (значение, и туда будем записывать)
@@ -1553,33 +1553,33 @@ class ControlUnit:
 
             return " ".join(subs)
 
-        opcode = self.data_path.command_register.get() & 0xFF
+        opcode = self.data_path.command_register.get_value() & 0xFF
 
         state_repr = [
             "TICK: {:8}".format(self._instruction_tick),
             "PS: {}".format(ps_to_str(self.data_path.program_state)),
-            "IP: {}".format(to_hex(self.data_path.instruction_pointer.get(), 2)),
-            "AR: {}".format(to_hex(self.data_path.address_register.get(), 2)),
-            "MEM[AR]: {}".format(to_hex(self.data_path.memory[self.data_path.address_register.get()], 1)),
-            "DR: {}".format(to_hex(self.data_path.data_register.get(), 4)),
-            "AC: {}".format(to_hex(self.data_path.ac.get(), 4)),
-            "BR1: {}".format(to_hex(self.data_path.buffer_register1.get(), 4)),
-            "BR2: {}".format(to_hex(self.data_path.buffer_register2.get(), 4)),
-            "BR3: {}".format(to_hex(self.data_path.buffer_register3.get(), 4)),
-            "CR: {}".format(to_hex(self.data_path.command_register.get(), 2)),
-            "DN: {}".format(to_hex(self.data_path.destination_register.get(), 2)),
-            "ABR1: {}".format(to_hex(self.data_path.address_buffer_register1.get(), 2)),
-            "ABR2: {}".format(to_hex(self.data_path.address_buffer_register2.get(), 2)),
-            "ABR3: {}".format(to_hex(self.data_path.address_buffer_register3.get(), 2)),
-            "SP: {}".format(to_hex(self.data_path.stack_pointer.get(), 2)),
-            "MEM[SP]: {}".format(to_hex(self.data_path.memory[self.data_path.stack_pointer.get()], 1)),
-            "R1: {}".format(to_hex(self.data_path.r1.get(), 4)),
-            "R2: {}".format(to_hex(self.data_path.r2.get(), 4)),
-            "R3: {}".format(to_hex(self.data_path.r3.get(), 4)),
-            "R4: {}".format(to_hex(self.data_path.r4.get(), 4)),
-            "R5: {}".format(to_hex(self.data_path.r5.get(), 4)),
-            "R6: {}".format(to_hex(self.data_path.r6.get(), 4)),
-            "R7: {}".format(to_hex(self.data_path.r7.get(), 4)),
+            "IP: {}".format(to_hex(self.data_path.instruction_pointer.get_value(), 2)),
+            "AR: {}".format(to_hex(self.data_path.address_register.get_value(), 2)),
+            "MEM[AR]: {}".format(to_hex(self.data_path.memory[self.data_path.address_register.get_value()], 1)),
+            "DR: {}".format(to_hex(self.data_path.data_register.get_value(), 4)),
+            "AC: {}".format(to_hex(self.data_path.ac.get_value(), 4)),
+            "BR1: {}".format(to_hex(self.data_path.buffer_register1.get_value(), 4)),
+            "BR2: {}".format(to_hex(self.data_path.buffer_register2.get_value(), 4)),
+            "BR3: {}".format(to_hex(self.data_path.buffer_register3.get_value(), 4)),
+            "CR: {}".format(to_hex(self.data_path.command_register.get_value(), 2)),
+            "DN: {}".format(to_hex(self.data_path.destination_register.get_value(), 2)),
+            "ABR1: {}".format(to_hex(self.data_path.address_buffer_register1.get_value(), 2)),
+            "ABR2: {}".format(to_hex(self.data_path.address_buffer_register2.get_value(), 2)),
+            "ABR3: {}".format(to_hex(self.data_path.address_buffer_register3.get_value(), 2)),
+            "SP: {}".format(to_hex(self.data_path.stack_pointer.get_value(), 2)),
+            "MEM[SP]: {}".format(to_hex(self.data_path.memory[self.data_path.stack_pointer.get_value()], 1)),
+            "R1: {}".format(to_hex(self.data_path.r1.get_value(), 4)),
+            "R2: {}".format(to_hex(self.data_path.r2.get_value(), 4)),
+            "R3: {}".format(to_hex(self.data_path.r3.get_value(), 4)),
+            "R4: {}".format(to_hex(self.data_path.r4.get_value(), 4)),
+            "R5: {}".format(to_hex(self.data_path.r5.get_value(), 4)),
+            "R6: {}".format(to_hex(self.data_path.r6.get_value(), 4)),
+            "R7: {}".format(to_hex(self.data_path.r7.get_value(), 4)),
             "Mnemonic: {}".format(translator.Parser.opcode_to_mnemonic(opcode))
         ]
 
