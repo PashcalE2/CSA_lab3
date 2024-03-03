@@ -185,6 +185,14 @@ class Parser:
             def __init__(self, msg):
                 super().__init__(msg)
 
+        class MemoryAddressingLeftBracketError(MemoryAddressingError):
+            def __init__(self, msg):
+                super().__init__("Адресация памяти начинается с `[`: {}".format(msg))
+
+        class MemoryAddressingRightBracketError(MemoryAddressingError):
+            def __init__(self, msg):
+                super().__init__("Адресация памяти заканчивается на `]`: {}".format(msg))
+
         class AddressBaseError(MemoryAddressingError):
             def __init__(self, msg):
                 super().__init__("Ожидалась основа адреса: {}".format(msg))
@@ -549,8 +557,9 @@ class Parser:
 
     @staticmethod
     def try_find_memory_addressing(line):
+        line_copy = line[:]
         if line[0] != "[":
-            raise Parser.Exceptions.MemoryAddressingError("Адресация памяти начинается с `[`")
+            raise Parser.Exceptions.MemoryAddressingLeftBracketError(line_copy)
 
         line = line[1:].lstrip(" ")
 
@@ -567,7 +576,7 @@ class Parser:
             offset_sign, offset = None, None
 
         if line[0] != "]":
-            raise Parser.Exceptions.MemoryAddressingError("Адресация памяти заканчивается на `]`")
+            raise Parser.Exceptions.MemoryAddressingRightBracketError(line_copy)
 
         return base, index_sign, index, scale_factor, offset_sign, offset, line[1:].strip(" ")
 
