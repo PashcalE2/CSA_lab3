@@ -492,7 +492,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 2. [cat](python/golden/cat.yml) -- программа `cat`, повторяем ввод на выводе.
 3. [hello user name](python/golden/hello_user_name.yml) -- программа `cat`, повторяем ввод на выводе.
 
-Интеграционные тесты реализованы [тут](python/golden_tests.py) через golden tests,
+Интеграционные тесты реализованы [тут](python/golden_test.py) через golden tests,
 конфигурация которых лежит в папке [golden](python/golden)
 
 CI:
