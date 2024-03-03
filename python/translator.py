@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import re
 import sys
+from typing import ClassVar, Pattern, AnyStr
 
 import isa
 
@@ -19,8 +20,8 @@ def str_to_number(number):
             value, base = int(number, 16), 16
         else:
             value, base = int(number), 10
-    except ValueError:
-        raise ValueError("Странное какое-то число: {}".format(number))
+    except ValueError as e:
+        raise ValueError("Странное какое-то число: {}".format(number)) from e
 
     return value, base
 
@@ -57,80 +58,80 @@ class Parser:
     Также содержит все необходимые методы для поиска элементов языка в подстроке
     """
 
-    org_directive = isa.OrgDirective.ORG
-    type_directives_names = list(isa.DataTypeDirectives.directive_by_name.keys())
-    number_regex = re.compile(r"([\-+]?(0x[\da-f]+|\d+))")
-    string_regex = re.compile(r"(\'[^\']+\')")
-    label_name_regex = re.compile(r"([_.a-z][_.\da-z]*)")
-    org_directive_regex = re.compile(r"org\s*(0x[\da-f]+|\d+)")
-    general_purpose_registers = {value.name for value in isa.Registers.code_to_general_register_dict.values()}
+    org_directive: ClassVar[str] = isa.OrgDirective.ORG
+    type_directives_names: ClassVar[list] = list(isa.DataTypeDirectives.directive_by_name.keys())
+    number_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"([\-+]?(0x[\da-f]+|\d+))")
+    string_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"(\'[^\']+\')")
+    label_name_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"([_.a-z][_.\da-z]*)")
+    org_directive_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"org\s*(0x[\da-f]+|\d+)")
+    general_purpose_registers: ClassVar[dict] = {value.name for value in isa.Registers.code_to_general_register_dict.values()}
 
-    mnemonic_to_instruction_dict = isa.InstructionSet.mnemonic_to_instruction_dict
+    mnemonic_to_instruction_dict: ClassVar[dict] = isa.InstructionSet.mnemonic_to_instruction_dict
 
-    opcode_to_mnemonic_dict = {
+    opcode_to_mnemonic_dict: ClassVar[dict] = {
         value.opcode: value.mnemonic for value in mnemonic_to_instruction_dict.values()
     }
 
-    key_words = set(list(mnemonic_to_instruction_dict.keys()) + list(org_directive) + list(type_directives_names))
+    key_words: ClassVar[set] = set(list(mnemonic_to_instruction_dict.keys()) + list(org_directive) + list(type_directives_names))
 
     class Exceptions:
-        class NotLabel(Exception):
+        class LabelError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotDataTypeDirective(Exception):
+        class DataTypeDirectiveError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotOrgDirective(Exception):
+        class OrgDirectiveError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotNumber(Exception):
+        class NumberError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotString(Exception):
+        class StringError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotDup(Exception):
+        class DupError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotDataDefinition(Exception):
+        class DataDefinitionError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotInstructionArgs(Exception):
+        class InstructionArgsError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotMnemonic(Exception):
+        class MnemonicError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotRegister(Exception):
+        class RegisterError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotAddressBase(Exception):
+        class AddressBaseError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotScaleSign(Exception):
+        class ScaleSignError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotAddressIndex(Exception):
+        class AddressIndexError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotAddressOffset(Exception):
+        class AddressOffsetError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
-        class NotMemoryAddressing(Exception):
+        class MemoryAddressingError(Exception):
             def __init__(self, msg=""):
                 super().__init__(msg)
 
@@ -190,11 +191,11 @@ class Parser:
         match = Parser.label_name_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.NotLabel("`{}` - не метка".format(line))
+            raise Parser.Exceptions.LabelError("`{}` - не метка".format(line))
 
         label_name = match.group(1)
         if label_name.find("..") >= 0:
-            raise Parser.Exceptions.NotLabel("В имени метки не может идти две `.` подряд")
+            raise Parser.Exceptions.LabelError("В имени метки не может идти две `.` подряд")
 
         return label_name, line[match.end(1):].lstrip(" ")
 
@@ -203,7 +204,7 @@ class Parser:
         label_name, line = Parser.try_find_label_name(line)
 
         if len(line) == 0 or line[0] != ":":
-            raise Parser.Exceptions.NotLabel("Метка должна кончаться на `:`")
+            raise Parser.Exceptions.LabelError("Метка должна кончаться на `:`")
 
         return label_name + (":" if add_colon else ""), line[1:].lstrip(" ")
 
@@ -214,12 +215,12 @@ class Parser:
         pos = line.find(" ")
 
         if pos < 0:
-            raise Parser.Exceptions.NotDataTypeDirective("После директивы данных ожидался пробел")
+            raise Parser.Exceptions.DataTypeDirectiveError("После директивы данных ожидался пробел")
 
         directive_name = line[:pos]
 
         if directive_name not in Parser.type_directives_names:
-            raise Parser.Exceptions.NotDataTypeDirective(
+            raise Parser.Exceptions.DataTypeDirectiveError(
                 "`{}` - не директива, можно так = {}".format(directive_name, Parser.type_directives_names))
 
         return directive_name, line[pos:].lstrip(" ")
@@ -234,7 +235,7 @@ class Parser:
         match = Parser.number_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.NotNumber(
+            raise Parser.Exceptions.NumberError(
                 "`{}` - не число, можно так = [0x0123456789ABCDEF, 0123456789]".format(line))
 
         return match.group(1).lstrip("+"), line[match.end(1):].lstrip(" ")
@@ -246,7 +247,7 @@ class Parser:
         match = Parser.string_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.NotString("`{}` - не строка, можно так = r\"'[^\']+'\"".format(line))
+            raise Parser.Exceptions.StringError("`{}` - не строка, можно так = r\"'[^\']+'\"".format(line))
 
         return match.group(1), line[match.end(1):].lstrip(" ")
 
@@ -254,19 +255,19 @@ class Parser:
     def try_find_dup(line: str):
         try:
             number, line = Parser.try_find_number(line)
-        except Parser.Exceptions.NotNumber:
-            raise Parser.Exceptions.NotDup("Перед `dup` ожидалось число")
+        except Parser.Exceptions.NumberError:
+            raise Parser.Exceptions.DupError("Перед `dup` ожидалось число")
 
         pos = 3
         dup = line[:pos]
 
         if dup != "dup":
-            raise Parser.Exceptions.NotDup("После числа ожидалось `dup`")
+            raise Parser.Exceptions.DupError("После числа ожидалось `dup`")
 
         line = line[pos:].lstrip(" ")
 
         if line[0] != "(":
-            raise Parser.Exceptions.NotDup("После dup ожидалось `(`")
+            raise Parser.Exceptions.DupError("После dup ожидалось `(`")
 
         line = line[1:].lstrip(" ")
 
@@ -274,7 +275,7 @@ class Parser:
         line = line.lstrip(" ")
 
         if line[0] != ")":
-            raise Parser.Exceptions.NotDup("После аргументов ожидалось `)`")
+            raise Parser.Exceptions.DupError("После аргументов ожидалось `)`")
 
         if number.find("0x") >= 0:
             number = int(number, 16)
@@ -292,32 +293,32 @@ class Parser:
             dup, line = Parser.try_find_dup(line)
             args.extend(dup)
             found_one = True
-        except Parser.Exceptions.NotDup:
+        except Parser.Exceptions.DupError:
             pass
 
         try:
             label_name, line = Parser.try_find_label_name(line)
             args.append(label_name)
             found_one = True
-        except Parser.Exceptions.NotLabel:
+        except Parser.Exceptions.LabelError:
             pass
 
         try:
             number, line = Parser.try_find_number(line)
             args.append(number)
             found_one = True
-        except Parser.Exceptions.NotNumber:
+        except Parser.Exceptions.NumberError:
             pass
 
         try:
             string, line = Parser.try_find_string(line)
             args.append(string)
             found_one = True
-        except Parser.Exceptions.NotString:
+        except Parser.Exceptions.StringError:
             pass
 
         if not found_one:
-            raise Parser.Exceptions.NotDataDefinition("После директивы ожидались данные")
+            raise Parser.Exceptions.DataDefinitionError("После директивы ожидались данные")
 
         if len(line) > 0:
             if line[0] == ",":
@@ -335,7 +336,7 @@ class Parser:
         mnemonic = line[:pos].lower()
 
         if mnemonic not in Parser.mnemonic_to_instruction_dict:
-            raise Parser.Exceptions.NotMnemonic("`{}` не мнемоника инструкции".format(mnemonic))
+            raise Parser.Exceptions.MnemonicError("`{}` не мнемоника инструкции".format(mnemonic))
 
         return mnemonic, line[pos:].lstrip(" ")
 
@@ -347,7 +348,7 @@ class Parser:
         try:
             directive_name, line = Parser.try_find_type_directive_name(line)
             args.append(directive_name)
-        except Parser.Exceptions.NotDataTypeDirective:
+        except Parser.Exceptions.DataTypeDirectiveError:
             pass
 
         try:
@@ -361,39 +362,39 @@ class Parser:
                 "offset": offset
             })
             found = True
-        except Parser.Exceptions.NotMemoryAddressing:
+        except Parser.Exceptions.MemoryAddressingError:
             pass
 
         try:
             reg, line = Parser.try_find_register(line)
             args.append(reg)
             found = True
-        except Parser.Exceptions.NotRegister:
+        except Parser.Exceptions.RegisterError:
             pass
 
         try:
             label_name, line = Parser.try_find_label_name(line)
             args.append(label_name)
             found = True
-        except Parser.Exceptions.NotLabel:
+        except Parser.Exceptions.LabelError:
             pass
 
         try:
             number, line = Parser.try_find_number(line)
             args.append(number)
             found = True
-        except Parser.Exceptions.NotNumber:
+        except Parser.Exceptions.NumberError:
             pass
 
         try:
             string, line = Parser.try_find_string(line)
             args.append(string)
             found = True
-        except Parser.Exceptions.NotString:
+        except Parser.Exceptions.StringError:
             pass
 
         if not found:
-            raise Parser.Exceptions.NotInstructionArgs("После инструкции ожидались аргументы")
+            raise Parser.Exceptions.InstructionArgsError("После инструкции ожидались аргументы")
 
         if len(line) > 0:
             if line[0] == ",":
@@ -408,7 +409,7 @@ class Parser:
             if line[:len(register)] == register:
                 return register, line[len(register):].lstrip(" ")
 
-        raise Parser.Exceptions.NotRegister(
+        raise Parser.Exceptions.RegisterError(
             "Ожидался регистр, регистры общего назначения = {}"
             .format(Parser.general_purpose_registers)
         )
@@ -418,22 +419,22 @@ class Parser:
         try:
             number, line = Parser.try_find_number(line)
             return number, line
-        except Parser.Exceptions.NotNumber:
+        except Parser.Exceptions.NumberError:
             pass
 
         try:
             reg, line = Parser.try_find_register(line)
             return reg, line
-        except Parser.Exceptions.NotRegister:
+        except Parser.Exceptions.RegisterError:
             pass
 
         try:
             label, line = Parser.try_find_label_name(line)
             return label, line
-        except Parser.Exceptions.NotLabel:
+        except Parser.Exceptions.LabelError:
             pass
 
-        raise Parser.Exceptions.NotAddressBase("Ожидалось основание адреса (число, метка, регистр)")
+        raise Parser.Exceptions.AddressBaseError("Ожидалось основание адреса (число, метка, регистр)")
 
     @staticmethod
     def try_find_addressing_sign(line: str):
@@ -447,7 +448,7 @@ class Parser:
         if line[0] == "*":
             return line[0], line[1:].lstrip(" ")
 
-        raise Parser.Exceptions.NotScaleSign("После индекса ожидается `* scale`")
+        raise Parser.Exceptions.ScaleSignError("После индекса ожидается `* scale`")
 
     @staticmethod
     def try_find_array_index(line: str):
@@ -458,7 +459,7 @@ class Parser:
 
         number = int(scale_factor)
         if number not in isa.InstructionPostfix.valid_scale_factors:
-            raise Parser.Exceptions.NotAddressIndex(
+            raise Parser.Exceptions.AddressIndexError(
                 "`{}` - плохой `scale factor`, можно: {}"
                 .format(scale_factor, isa.InstructionPostfix.valid_scale_factors)
             )
@@ -472,21 +473,21 @@ class Parser:
         try:
             number, line = Parser.try_find_number(line)
             return sign, number, line
-        except Parser.Exceptions.NotNumber:
+        except Parser.Exceptions.NumberError:
             pass
 
         try:
             reg, line = Parser.try_find_register(line)
             return sign, reg, line
-        except Parser.Exceptions.NotRegister:
+        except Parser.Exceptions.RegisterError:
             pass
 
-        raise Parser.Exceptions.NotAddressOffset("Ожидалось смещение адреса (число, регистр)")
+        raise Parser.Exceptions.AddressOffsetError("Ожидалось смещение адреса (число, регистр)")
 
     @staticmethod
     def try_find_memory_addressing(line):
         if line[0] != "[":
-            raise Parser.Exceptions.NotMemoryAddressing("Адресация памяти начинается с `[`")
+            raise Parser.Exceptions.MemoryAddressingError("Адресация памяти начинается с `[`")
 
         line = line[1:].lstrip(" ")
 
@@ -494,16 +495,16 @@ class Parser:
 
         try:
             index_sign, index, scale_factor, line = Parser.try_find_array_index(line)
-        except Parser.Exceptions.NotAddressIndex:
+        except Parser.Exceptions.AddressIndexError:
             index_sign, index, scale_factor = None, None, None
 
         try:
             offset_sign, offset, line = Parser.try_find_address_offset(line)
-        except Parser.Exceptions.NotAddressOffset:
+        except Parser.Exceptions.AddressOffsetError:
             offset_sign, offset = None, None
 
         if line[0] != "]":
-            raise Parser.Exceptions.NotMemoryAddressing("Адресация памяти заканчивается на `]`")
+            raise Parser.Exceptions.MemoryAddressingError("Адресация памяти заканчивается на `]`")
 
         return base, index_sign, index, scale_factor, offset_sign, offset, line[1:].strip(" ")
 
@@ -512,7 +513,7 @@ class Parser:
         match = Parser.org_directive_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.NotOrgDirective("`{}` - не директива `org`".format(line))
+            raise Parser.Exceptions.OrgDirectiveError("`{}` - не директива `org`".format(line))
 
         return match.group(1), line[match.end(1):]
 
@@ -520,7 +521,7 @@ class Parser:
     def parse_data_def(line: str):
         try:
             label, line = Parser.parser_label_with_colon(line)
-        except Parser.Exceptions.NotLabel:
+        except Parser.Exceptions.LabelError:
             label = None
 
         directive_name, line = Parser.try_find_type_directive_name(line)
@@ -532,7 +533,7 @@ class Parser:
     def parse_instruction(line: str):
         try:
             label, line = Parser.parser_label_with_colon(line)
-        except Parser.Exceptions.NotLabel:
+        except Parser.Exceptions.LabelError:
             label = None
 
         directive_name = isa.DataTypeDirectives.WORD.name
@@ -541,7 +542,7 @@ class Parser:
         args = []
         try:
             args, line = Parser.try_find_instruction_args(line)
-        except Parser.Exceptions.NotInstructionArgs:
+        except Parser.Exceptions.InstructionArgsError:
             pass
 
         for type_dir in Parser.type_directives_names:
@@ -709,7 +710,7 @@ class Translator:
                 continue
             except (Translator.Exceptions.BadLabelName, Translator.Exceptions.LabelRedefinition) as e:
                 raise e
-            except Parser.Exceptions.NotLabel as e:
+            except Parser.Exceptions.LabelError as e:
                 if print_err:
                     print("Ошибка при проверке метки: {}".format(e))
 
@@ -721,7 +722,7 @@ class Translator:
                 code.append({"mem_address": mem_address, "is_org": True, "term": isa.Term(line_num, token)})
                 # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
-            except Parser.Exceptions.NotOrgDirective as e:
+            except Parser.Exceptions.OrgDirectiveError as e:
                 if print_err:
                     print("Ошибка при проверке `org`: {}".format(e))
 
@@ -769,7 +770,7 @@ class Translator:
                 continue
             except (Translator.Exceptions.BadLabelName, Translator.Exceptions.LabelRedefinition) as e:
                 raise e
-            except Parser.Exceptions.NotDataDefinition as e:
+            except Parser.Exceptions.DataDefinitionError as e:
                 if print_err:
                     print("Ошибка при проверки размещения данных: {}".format(e))
 
