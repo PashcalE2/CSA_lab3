@@ -63,3 +63,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
+
+      - name: Run Ruff linters
+        run: |
+          poetry run python -m ruff translator.py
+          poetry run python -m ruff machine.py
+          poetry run python -m ruff isa.py
