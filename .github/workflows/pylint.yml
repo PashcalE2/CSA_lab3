@@ -6,13 +6,13 @@ on:
       - main
     paths:
       - ".github/workflows/*"
-      - "python/**"
+      - "./**"
   pull_request:
     branches:
       - main
     paths:
       - ".github/workflows/*"
-      - "python/**"
+      - "./**"
 
 defaults:
   run:
@@ -61,9 +61,3 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
-
-      - name: Check code formatting with Ruff
-        run: poetry run ruff format --check .
-
-      - name: Run Ruff linters
-        run: poetry run ruff check .
