@@ -2,7 +2,8 @@
 import re
 import sys
 
-from isa import InstructionSet, Term, DataTypeDirectives, OrgDirective, Registers, InstructionPostfix, InstructionPrefix, ByteCodeFile
+from isa import InstructionSet, Term, DataTypeDirectives, OrgDirective, Registers, InstructionPostfix, \
+    InstructionPrefix, ByteCodeFile
 
 
 def data_dict(datatype, value):
@@ -41,6 +42,7 @@ def str_to_hex(string, directive):
 
     result = [result[i] << ((repeats - i - 1) * 8) for i in range(repeats)]
     return hex(sum(result))
+
 
 class Parser:
     """
@@ -382,7 +384,8 @@ class Parser:
 
         number = int(scale_factor)
         if number not in InstructionPostfix.valid_scale_factors:
-            raise Exception("`{}` - плохой `scale factor`, можно: {}".format(scale_factor, InstructionPostfix.valid_scale_factors))
+            raise Exception(
+                "`{}` - плохой `scale factor`, можно: {}".format(scale_factor, InstructionPostfix.valid_scale_factors))
 
         return sign, index, scale_factor, line
 
@@ -520,7 +523,9 @@ def encode_instruction_arg(directive_name, arg):
         offset_sign = (arg["offset_sign"] is not None) and (arg["offset_sign"] == "-")
         index_sign = (arg["index_sign"] is not None) and (arg["index_sign"] == "-")
 
-        data.append(data_dict(DataTypeDirectives.BYTE.name, InstructionPostfix.encode_addressing_mode(has_offset, has_index, scale_factor, offset_sign, index_sign)))
+        data.append(data_dict(DataTypeDirectives.BYTE.name,
+                              InstructionPostfix.encode_addressing_mode(has_offset, has_index, scale_factor,
+                                                                        offset_sign, index_sign)))
 
         byte_code, arg["base"] = encode_instruction_arg(DataTypeDirectives.WORD.name, arg["base"])
         data.extend(byte_code)
@@ -652,7 +657,8 @@ def translate_stage_1(text, print_err):
             term_mnemonic += directive_name + " "
             term_mnemonic += ", ".join(args)
 
-            code.append({"mem_address": 0, "is_data": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
+            code.append({"mem_address": 0, "is_data": True, "label": label, "data": data,
+                         "term": Term(line_num, term_mnemonic.strip(" "))})
             # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
             continue
         except Exception as e:
@@ -696,7 +702,8 @@ def translate_stage_1(text, print_err):
                 if Parser.is_string(args[i]):
                     args[i] = str_to_hex(args[i], directive)
 
-                arg_is_number, arg_is_register, arg_is_label, arg_is_addressing = arg_is_number_register_label_or_addressing(args[i])
+                arg_is_number, arg_is_register, arg_is_label, arg_is_addressing = arg_is_number_register_label_or_addressing(
+                    args[i])
 
                 arg_type = InstructionSet.form_arg_type(arg_is_number, arg_is_label, arg_is_register)
                 type_list_idx = i
@@ -705,8 +712,11 @@ def translate_stage_1(text, print_err):
                     type_list_idx = len(instruction.args_types) - 1
 
                 if not InstructionSet.check_type_is_valid(arg_type, instruction.args_types[type_list_idx]):
-                    raise Exception("Инструкция `{}` принимает аргументы следующих типов: {}\n#{} аргумент `{}` имеет тип: {}"
-                                    .format(mnemonic, InstructionSet.form_args_types_str(instruction.args_types, instruction.variable_args_count), i + 1, args[i], InstructionPostfix.arg_type_to_str[arg_type]))
+                    raise Exception(
+                        "Инструкция `{}` принимает аргументы следующих типов: {}\n#{} аргумент `{}` имеет тип: {}"
+                        .format(mnemonic, InstructionSet.form_args_types_str(instruction.args_types,
+                                                                             instruction.variable_args_count), i + 1,
+                                args[i], InstructionPostfix.arg_type_to_str[arg_type]))
 
                 byte_code, args[i] = encode_instruction_arg(directive_name, args[i])
                 data.extend(byte_code)
@@ -720,7 +730,8 @@ def translate_stage_1(text, print_err):
             term_mnemonic += "" if (directive_name is None) or (directive_name == "word") else (directive_name + " ")
             term_mnemonic += ", ".join(args)
 
-            code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data, "term": Term(line_num, term_mnemonic.strip(" "))})
+            code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data,
+                         "term": Term(line_num, term_mnemonic.strip(" "))})
             # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
             continue
         except Exception as e:
@@ -730,7 +741,8 @@ def translate_stage_1(text, print_err):
         raise Exception("не пойми что написано")
 
     if entry_point_label not in labels:
-        raise Exception("В коде должна присутствовать метка `{}`, откуда начнется исполнение программы".format(entry_point_label))
+        raise Exception(
+            "В коде должна присутствовать метка `{}`, откуда начнется исполнение программы".format(entry_point_label))
 
     return labels, code
 
@@ -807,7 +819,8 @@ def translate_stage_3(labels, code):
                     if (piece not in labels) or (labels[piece] < 0):
                         raise Exception("Метка `{}` - не определена".format(piece))
 
-                    new_data.extend(ByteCodeFile.number_to_big_endian(labels[piece], DataTypeDirectives.WORD.bytes_count))
+                    new_data.extend(
+                        ByteCodeFile.number_to_big_endian(labels[piece], DataTypeDirectives.WORD.bytes_count))
                 else:
                     new_data.append(line["data"][i])
 

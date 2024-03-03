@@ -258,7 +258,8 @@ class ALU:
             self.set_result(self.left + self.right, edit_n=True, edit_c=True, edit_z=True, edit_v=True)
 
     def signal_sub(self):
-        self.set_result(self.left + (self.result_max_uint + 1 - self.right), edit_n=True, edit_c=True, edit_z=True, edit_v=True)
+        self.set_result(self.left + (self.result_max_uint + 1 - self.right), edit_n=True, edit_c=True, edit_z=True,
+                        edit_v=True)
 
     def signal_mul(self):
         self.set_result(self.left * self.right, edit_n=True, edit_c=True, edit_z=True, edit_v=True)
@@ -788,7 +789,8 @@ class ControlUnit:
         elif register_code == Registers.R7.code:
             self.data_path.alu.signal_set_r7_to_right()
 
-    def decode_instruction_arg_source(self, directive, to_ac=0, to_br=0, to_abr=0, sxt=0, pass_register=0, pass_memory_address=0):
+    def decode_instruction_arg_source(self, directive, to_ac=0, to_br=0, to_abr=0, sxt=0, pass_register=0,
+                                      pass_memory_address=0):
         arg_type = self.decode_arg_prefix()
         arg_type_like = InstructionPostfix.like_arg_type(arg_type)
 
@@ -811,7 +813,8 @@ class ControlUnit:
             self.set_register_on_alu_by_code(register_code)
         elif arg_type_like == InstructionPostfix.ArgsAreMemoryAddressing:
             # значение - адресация в память
-            has_offset, has_index, scale_factor_power, offset_sign, index_sign = InstructionPostfix.decode_addressing_mode(arg_type)
+            has_offset, has_index, scale_factor_power, offset_sign, index_sign = InstructionPostfix.decode_addressing_mode(
+                arg_type)
 
             # Сохраняем scale factor в ABR3
             # DR[ScaleFactor] => 2 ^ sf => ABR3
@@ -1159,7 +1162,8 @@ class ControlUnit:
             self.write_to_stack(directive)
             return
         elif opcode == InstructionSet.POP.opcode:
-            destination_type, destination_type_like = self.decode_instruction_arg_source(directive, pass_register=1, pass_memory_address=1)
+            destination_type, destination_type_like = self.decode_instruction_arg_source(directive, pass_register=1,
+                                                                                         pass_memory_address=1)
 
             # MEM[SP] => DR
             self.read_from_stack(directive)
@@ -1253,7 +1257,8 @@ class ControlUnit:
         destination_type1, destination_type_like1 = 0, 0
 
         if opcode == InstructionSet.MOV.opcode:
-            destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, pass_register=1, pass_memory_address=1)
+            destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, pass_register=1,
+                                                                                           pass_memory_address=1)
             # ABR1 => BR1
             remember_first(destination_type_like1)
 

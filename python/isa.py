@@ -171,7 +171,8 @@ class InstructionPostfix:
 
 
 class Instruction:
-    def __init__(self, mnemonic: str, opcode: int, args_types: list, variable_args_count=False, validate_directive_and_args=lambda directive, args: (True, "Описание как правильно")):
+    def __init__(self, mnemonic: str, opcode: int, args_types: list, variable_args_count=False,
+                 validate_directive_and_args=lambda directive, args: (True, "Описание как правильно")):
         self.mnemonic = mnemonic
         self.opcode = opcode
         self.args_types = args_types
@@ -299,7 +300,8 @@ class InstructionSet:
     SWAP = Instruction("swap", 0xB1, [arg_is_writeable, arg_is_writeable])
 
     # Инструкции с N аргументами (1)
-    LCOMB = Instruction("lcomb", 0xC0, [arg_is_any], True, lambda directive, args: (len(args) % 2 == 1, "Требует нечетное количество элементов: c0 + c1x1 + ..."))
+    LCOMB = Instruction("lcomb", 0xC0, [arg_is_any], True, lambda directive, args: (
+    len(args) % 2 == 1, "Требует нечетное количество элементов: c0 + c1x1 + ..."))
 
     mnemonic_to_instruction_dict = {
         NOP.mnemonic: NOP,
@@ -389,7 +391,8 @@ class InstructionSet:
         if not variable_args_count:
             return ", ".join([InstructionPostfix.get_arg_type_str(arg_types) for arg_types in args_types])
 
-        return InstructionSet.form_args_types_str(args_types[:-1], False) + "[ , {} ]".format(InstructionSet.form_args_types_str(args_types[-1], False))
+        return InstructionSet.form_args_types_str(args_types[:-1], False) + "[ , {} ]".format(
+            InstructionSet.form_args_types_str(args_types[-1], False))
 
     @staticmethod
     def form_arg_type(is_number: bool, is_label: bool, is_register: bool):
