@@ -78,63 +78,75 @@ class Parser:
 
     class Exceptions:
         class LabelError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
+        class LocalLabelNameError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Две `.` в имени метки подряд запрещены: {}".format(msg))
+
+        class LabelNameError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Метка так не пишется: {}".format(msg))
+
+        class LabelWithoutColonError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Ожидается `:` после имени метки: {}".format(msg))
+
         class DataTypeDirectiveError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class OrgDirectiveError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class NumberError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class StringError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class DupError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class DataDefinitionError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class InstructionArgsError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class MnemonicError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class RegisterError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class AddressBaseError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class ScaleSignError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class AddressIndexError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class AddressOffsetError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class MemoryAddressingError(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
     @staticmethod
@@ -193,11 +205,11 @@ class Parser:
         match = Parser.label_name_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.LabelError("`{}` - не метка".format(line))
+            raise Parser.Exceptions.LabelNameError(line)
 
         label_name = match.group(1)
         if label_name.find("..") >= 0:
-            raise Parser.Exceptions.LabelError("В имени метки не может идти две `.` подряд")
+            raise Parser.Exceptions.LocalLabelNameError(label_name)
 
         return label_name, line[match.end(1):].lstrip(" ")
 
@@ -206,7 +218,7 @@ class Parser:
         label_name, line = Parser.try_find_label_name(line)
 
         if len(line) == 0 or line[0] != ":":
-            raise Parser.Exceptions.LabelError("Метка должна кончаться на `:`")
+            raise Parser.Exceptions.LabelWithoutColonError(label_name + line)
 
         return label_name + (":" if add_colon else ""), line[1:].lstrip(" ")
 
