@@ -97,57 +97,109 @@ class Parser:
             def __init__(self, msg):
                 super().__init__(msg)
 
+        class DataTypeDirectiveNoSpaceError(DataTypeDirectiveError):
+            def __init__(self, msg):
+                super().__init__("После имени директивы типа данных ожидался пробел: {}".format(msg))
+
+        class NoSuchDataTypeDirectiveNameError(DataTypeDirectiveError):
+            def __init__(self, msg):
+                super().__init__("Нет такого имени директивы типа данных: {}".format(msg))
+
         class OrgDirectiveError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
+
+        class OrgDirectivePatternError(OrgDirectiveError):
+            def __init__(self, msg):
+                super().__init__("Неправильная запись директивы `org` размещения данных: {}".format(msg))
 
         class NumberError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
 
+        class NumberPatternError(NumberError):
+            def __init__(self, msg):
+                super().__init__("Не совпадает с паттерном числа-литерала: {}".format(msg))
+
         class StringError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
+
+        class StringPatternError(StringError):
+            def __init__(self, msg):
+                super().__init__("Не совпадает с паттерном строки-литерала: {}".format(msg))
 
         class DupError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
 
+        class DupRepeatCountError(DupError):
+            def __init__(self, msg):
+                super().__init__("Перед `dup` ожидалось число повторений: {}".format(msg))
+
+        class DupKeyWordError(DupError):
+            def __init__(self, msg):
+                super().__init__("После числа повторений ожидалось `dup`: {}".format(msg))
+
+        class DupLeftBracketError(DupError):
+            def __init__(self, msg):
+                super().__init__("Аругменты `dup` должны идти после скобки `(`: {}".format(msg))
+
+        class DupRightBracketError(DupError):
+            def __init__(self, msg):
+                super().__init__("Аругменты `dup` должны идти после скобки `(`: {}".format(msg))
+
         class DataDefinitionError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
+
+        class DataDefinitionNoArgsError(DataDefinitionError):
+            def __init__(self, msg):
+                super().__init__("После директивы ожидались данные: {}".format(msg))
 
         class InstructionArgsError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
 
+        class InstructionNoArgsError(InstructionArgsError):
+            def __init__(self, msg):
+                super().__init__("После инструкции ожидались аргументы: {}".format(msg))
+
         class MnemonicError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
+
+        class MnemonicNameError(MnemonicError):
+            def __init__(self, msg):
+                super().__init__("`{}` не мнемоника инструкции".format(msg))
 
         class RegisterError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
 
-        class AddressBaseError(Exception):
+        class RegisterNameError(RegisterError):
             def __init__(self, msg):
-                super().__init__(msg)
-
-        class ScaleSignError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
-
-        class AddressIndexError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
-
-        class AddressOffsetError(Exception):
-            def __init__(self, msg):
-                super().__init__(msg)
+                super().__init__("Ожидался регистр, регистры общего назначения = {}".format(msg))
 
         class MemoryAddressingError(Exception):
             def __init__(self, msg):
                 super().__init__(msg)
+
+        class AddressBaseError(MemoryAddressingError):
+            def __init__(self, msg):
+                super().__init__("Ожидалась основа адреса: {}".format(msg))
+
+        class ScaleSignError(MemoryAddressingError):
+            def __init__(self, msg):
+                super().__init__("После индекса ожидается знак и число `*scale`: {}".format(msg))
+
+        class ScaleFactorError(MemoryAddressingError):
+            def __init__(self, msg):
+                super().__init__("Плохой `scale factor`: {}".format(msg))
+
+        class AddressOffsetError(MemoryAddressingError):
+            def __init__(self, msg):
+                super().__init__("Ожидалось смещение адреса (число, регистр)".format(msg))
 
     @staticmethod
     def is_string(string):
@@ -229,13 +281,12 @@ class Parser:
         pos = line.find(" ")
 
         if pos < 0:
-            raise Parser.Exceptions.DataTypeDirectiveError("После директивы данных ожидался пробел")
+            raise Parser.Exceptions.DataTypeDirectiveNoSpaceError(line)
 
         directive_name = line[:pos]
 
         if directive_name not in Parser.type_directives_names:
-            raise Parser.Exceptions.DataTypeDirectiveError(
-                "`{}` - не директива, можно так = {}".format(directive_name, Parser.type_directives_names))
+            raise Parser.Exceptions.NoSuchDataTypeDirectiveNameError(directive_name)
 
         return directive_name, line[pos:].lstrip(" ")
 
@@ -249,8 +300,7 @@ class Parser:
         match = Parser.number_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.NumberError(
-                "`{}` - не число, можно так = [0x0123456789ABCDEF, 0123456789]".format(line))
+            raise Parser.Exceptions.NumberPatternError(line)
 
         return match.group(1).lstrip("+"), line[match.end(1):].lstrip(" ")
 
@@ -261,7 +311,7 @@ class Parser:
         match = Parser.string_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.StringError("`{}` - не строка, можно так = r\"'[^\']+'\"".format(line))
+            raise Parser.Exceptions.StringPatternError(line)
 
         return match.group(1), line[match.end(1):].lstrip(" ")
 
@@ -270,18 +320,16 @@ class Parser:
         try:
             number, line = Parser.try_find_number(line)
         except Parser.Exceptions.NumberError:
-            raise Parser.Exceptions.DupError("Перед `dup` ожидалось число")
+            raise Parser.Exceptions.DupRepeatCountError(line)
 
         pos = 3
-        dup = line[:pos]
-
-        if dup != "dup":
-            raise Parser.Exceptions.DupError("После числа ожидалось `dup`")
+        if line[:pos] != "dup":
+            raise Parser.Exceptions.DupKeyWordError(line)
 
         line = line[pos:].lstrip(" ")
 
         if line[0] != "(":
-            raise Parser.Exceptions.DupError("После dup ожидалось `(`")
+            raise Parser.Exceptions.DupLeftBracketError(line)
 
         line = line[1:].lstrip(" ")
 
@@ -289,7 +337,7 @@ class Parser:
         line = line.lstrip(" ")
 
         if line[0] != ")":
-            raise Parser.Exceptions.DupError("После аргументов ожидалось `)`")
+            raise Parser.Exceptions.DupRightBracketError(line)
 
         if number.find("0x") >= 0:
             number = int(number, 16)
@@ -332,7 +380,7 @@ class Parser:
             pass
 
         if not found_one:
-            raise Parser.Exceptions.DataDefinitionError("После директивы ожидались данные")
+            raise Parser.Exceptions.DataDefinitionNoArgsError(line)
 
         if len(line) > 0:
             if line[0] == ",":
@@ -350,7 +398,7 @@ class Parser:
         mnemonic = line[:pos].lower()
 
         if mnemonic not in Parser.mnemonic_to_instruction_dict:
-            raise Parser.Exceptions.MnemonicError("`{}` не мнемоника инструкции".format(mnemonic))
+            raise Parser.Exceptions.MnemonicNameError(mnemonic)
 
         return mnemonic, line[pos:].lstrip(" ")
 
@@ -408,7 +456,7 @@ class Parser:
             pass
 
         if not found:
-            raise Parser.Exceptions.InstructionArgsError("После инструкции ожидались аргументы")
+            raise Parser.Exceptions.InstructionNoArgsError(line)
 
         if len(line) > 0:
             if line[0] == ",":
@@ -423,10 +471,7 @@ class Parser:
             if line[:len(register)] == register:
                 return register, line[len(register):].lstrip(" ")
 
-        raise Parser.Exceptions.RegisterError(
-            "Ожидался регистр, регистры общего назначения = {}"
-            .format(Parser.general_purpose_registers)
-        )
+        raise Parser.Exceptions.RegisterNameError(line)
 
     @staticmethod
     def try_find_address_base(line: str):
@@ -448,7 +493,7 @@ class Parser:
         except Parser.Exceptions.LabelError:
             pass
 
-        raise Parser.Exceptions.AddressBaseError("Ожидалось основание адреса (число, метка, регистр)")
+        raise Parser.Exceptions.AddressBaseError(line)
 
     @staticmethod
     def try_find_addressing_sign(line: str):
@@ -462,7 +507,7 @@ class Parser:
         if line[0] == "*":
             return line[0], line[1:].lstrip(" ")
 
-        raise Parser.Exceptions.ScaleSignError("После индекса ожидается `* scale`")
+        raise Parser.Exceptions.ScaleSignError(line)
 
     @staticmethod
     def try_find_array_index(line: str):
@@ -473,10 +518,7 @@ class Parser:
 
         number = int(scale_factor)
         if number not in isa.InstructionPostfix.valid_scale_factors:
-            raise Parser.Exceptions.AddressIndexError(
-                "`{}` - плохой `scale factor`, можно: {}"
-                .format(scale_factor, isa.InstructionPostfix.valid_scale_factors)
-            )
+            raise Parser.Exceptions.ScaleFactorError(line)
 
         return sign, index, scale_factor, line
 
@@ -496,7 +538,7 @@ class Parser:
         except Parser.Exceptions.RegisterError:
             pass
 
-        raise Parser.Exceptions.AddressOffsetError("Ожидалось смещение адреса (число, регистр)")
+        raise Parser.Exceptions.AddressOffsetError(line)
 
     @staticmethod
     def try_find_memory_addressing(line):
@@ -509,7 +551,7 @@ class Parser:
 
         try:
             index_sign, index, scale_factor, line = Parser.try_find_array_index(line)
-        except Parser.Exceptions.AddressIndexError:
+        except Parser.Exceptions.ScaleFactorError:
             index_sign, index, scale_factor = None, None, None
 
         try:
@@ -527,7 +569,7 @@ class Parser:
         match = Parser.org_directive_regex.match(line)
 
         if match is None:
-            raise Parser.Exceptions.OrgDirectiveError("`{}` - не директива `org`".format(line))
+            raise Parser.Exceptions.OrgDirectivePatternError(line)
 
         return match.group(1), line[match.end(1):]
 
@@ -648,24 +690,49 @@ class Translator:
     entry_point_label = "start"
 
     class Exceptions:
-        class BadLabelName(Exception):
-            def __init__(self, msg=""):
+        class LabelError(Exception):
+            def __init__(self, msg):
                 super().__init__(msg)
 
-        class LabelRedefinition(Exception):
-            def __init__(self, msg=""):
+        class LabelColonError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Только один символ `:` должен быть после имени метки: {}".format(msg))
+
+        class LabelKeyWordError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Нельзя назначить метку `{}` с именем ключевого слова".format(msg))
+
+        class LabelRedefinitionError(LabelError):
+            def __init__(self, msg):
+                super().__init__("Переопределение метки: {}".format(msg))
+
+        class InstructionError(Exception):
+            def __init__(self, msg):
                 super().__init__(msg)
 
-        class BadInstructionArgs(Exception):
-            def __init__(self, msg=""):
-                super().__init__(msg)
+        class InstructionArgsError(InstructionError):
+            def __init__(self, instruction):
+                super().__init__(
+                    "Инструкция `{}` принимает аргументы следующих типов: {}"
+                    .format(
+                        instruction.mnemonic,
+                        isa.InstructionSet.form_args_types_str(
+                            instruction.args_types,
+                            instruction.variable_args_count
+                        )
+                    )
+                )
+
+        class InstructionValidationError(InstructionError):
+            def __init__(self, msg):
+                super().__init__("{}".format(msg))
 
         class UnknownStatement(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
         class NoEntryPoint(Exception):
-            def __init__(self, msg=""):
+            def __init__(self, msg):
                 super().__init__(msg)
 
     @staticmethod
@@ -686,13 +753,10 @@ class Translator:
                 root_label = new_label
 
             if new_label in Parser.key_words:
-                raise Translator.Exceptions.BadLabelName(
-                    "Нельзя назначить метку `{}` с именем ключевого слова"
-                    .format(new_label)
-                )
+                raise Translator.Exceptions.LabelKeyWordError(new_label)
 
             if new_label in labels:
-                raise Translator.Exceptions.LabelRedefinition("Переопределение метки: {}".format(new_label))
+                raise Translator.Exceptions.LabelRedefinitionError(new_label)
 
             labels[new_label] = -1
 
@@ -712,17 +776,14 @@ class Translator:
                 label, line = Parser.parser_label_with_colon(token)
 
                 if len(line) > 0 and line[0] == ":":
-                    raise Translator.Exceptions.BadLabelName(
-                        "`{}` - после метки должен быть только один символ `:`"
-                        .format(token)
-                    )
+                    raise Translator.Exceptions.LabelColonError(token)
 
                 label, last_root_label = check_new_label(label, last_root_label)
 
                 code.append({"mem_address": 0, "label": label, "term": isa.Term(line_num, token)})
                 # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
-            except (Translator.Exceptions.BadLabelName, Translator.Exceptions.LabelRedefinition) as e:
+            except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
                 raise e
             except Parser.Exceptions.LabelError as e:
                 if print_err:
@@ -736,7 +797,7 @@ class Translator:
                 code.append({"mem_address": mem_address, "is_org": True, "term": isa.Term(line_num, token)})
                 # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
-            except Parser.Exceptions.OrgDirectiveError as e:
+            except Parser.Exceptions.OrgDirectivePatternError as e:
                 if print_err:
                     print("Ошибка при проверке `org`: {}".format(e))
 
@@ -782,7 +843,7 @@ class Translator:
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
                 continue
-            except (Translator.Exceptions.BadLabelName, Translator.Exceptions.LabelRedefinition) as e:
+            except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
                 raise e
             except Parser.Exceptions.DataDefinitionError as e:
                 if print_err:
@@ -837,26 +898,14 @@ class Translator:
                         type_list_idx = len(instruction.args_types) - 1
 
                     if not isa.InstructionSet.check_type_is_valid(arg_type, instruction.args_types[type_list_idx]):
-                        raise Translator.Exceptions.BadInstructionArgs(
-                            "Инструкция `{}` принимает аргументы следующих типов: {}\n#{} аргумент `{}` имеет тип: {}"
-                            .format(
-                                mnemonic,
-                                isa.InstructionSet.form_args_types_str(
-                                    instruction.args_types,
-                                    instruction.variable_args_count
-                                ),
-                                i + 1,
-                                args[i],
-                                isa.InstructionPostfix.arg_type_to_str[arg_type]
-                            )
-                        )
+                        raise Translator.Exceptions.InstructionArgsError(instruction)
 
                     byte_code, args[i] = encode_instruction_arg(directive_name, args[i])
                     data.extend(byte_code)
 
                 is_correct, error_msg = instruction.validate_directive_and_args(directive, args)
                 if not is_correct:
-                    raise Translator.Exceptions.BadInstructionArgs(error_msg)
+                    raise Translator.Exceptions.InstructionValidationError(error_msg)
 
                 term_mnemonic = "" if label is None else (label + ": ")
                 term_mnemonic += mnemonic + " "
@@ -869,9 +918,9 @@ class Translator:
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
                 # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
                 continue
-            except (Translator.Exceptions.BadLabelName, Translator.Exceptions.LabelRedefinition) as e:
+            except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
                 raise e
-            except Translator.Exceptions.BadInstructionArgs as e:
+            except Translator.Exceptions.InstructionError as e:
                 if print_err:
                     print("Ошибка при проверке инструкции: {}".format(e))
 
