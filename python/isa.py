@@ -55,7 +55,8 @@ class InstructionPostfix:
     В байте `регистр` будет закодирован регистр
 
     В байте `режим` будет режим, по которому ясно сколько читать дальше.
-    Среди последующих байтов будут либо опять постфикс байт `значение на месте` (и соответственно, значение), либо `регистр`
+    Среди последующих байтов будут либо опять постфикс байт
+    `значение на месте` (и соответственно, значение), либо `регистр`
     """
 
     ArgIsImmediate = 0xFF
@@ -164,8 +165,13 @@ class InstructionPostfix:
 
 
 class Instruction:
-    def __init__(self, mnemonic: str, opcode: int, args_types: list, variable_args_count=False,
-                 validate_directive_and_args=lambda directive, args: (True, "Описание как правильно")):
+    def __init__(
+            self,
+            mnemonic: str,
+            opcode: int,
+            args_types: list,
+            variable_args_count=False,
+            validate_directive_and_args=lambda directive, args: (True, "Описание как правильно")):
         self.mnemonic = mnemonic
         self.opcode = opcode
         self.args_types = args_types
@@ -175,7 +181,7 @@ class Instruction:
 
 def jumps_validator(directive: DataTypeDirectives, args: list):
     return (
-        directive is DataTypeDirectives.WORD,
+        directive is DataTypeDirectives.WORD and len(args) == 1,
         "Переходы требуют адрес в размере {} байта".format(DataTypeDirectives.WORD.bytes_count)
     )
 
@@ -294,7 +300,8 @@ class InstructionSet:
 
     # Инструкции с N аргументами (1)
     LCOMB = Instruction("lcomb", 0xC0, [arg_is_any], True, lambda directive, args: (
-    len(args) % 2 == 1, "Требует нечетное количество элементов: c0 + c1x1 + ..."))
+        len(args) % 2 == 1, "Требует нечетное количество элементов: c0 + c1x1 + ..."
+    ))
 
     mnemonic_to_instruction_dict = {
         NOP.mnemonic: NOP,
@@ -368,7 +375,7 @@ class InstructionSet:
     def opcode_to_instruction(opcode: int):
         try:
             return InstructionSet.opcode_to_instruction_dict[opcode]
-        except Exception as e:
+        except KeyError:
             return InstructionSet.NOP
 
     @staticmethod
@@ -588,8 +595,8 @@ class ByteCodeFile:
 
     @staticmethod
     def code_line_to_bytes(line):
-        return ByteCodeFile.number_to_big_endian(line["mem_address"], 2) + ByteCodeFile.number_to_big_endian(
-            len(line["byte_code"]), 2) + line["byte_code"]
+        return ByteCodeFile.number_to_big_endian(line["mem_address"], 2) + \
+               ByteCodeFile.number_to_big_endian(len(line["byte_code"]), 2) + line["byte_code"]
 
     @staticmethod
     def code_to_bytes(start_address: int, code):
@@ -615,14 +622,16 @@ class ByteCodeFile:
             byte_code = " ".join([hex(byte)[2:] for byte in line["byte_code"]])
 
             if len(byte_code) > ByteCodeFile.max_debug_str_len:
-                byte_code = byte_code[:ByteCodeFile.max_debug_sub_str_len] + "... " + byte_code[
-                                                                                      -ByteCodeFile.max_debug_sub_str_len:]
+                byte_code = \
+                    byte_code[:ByteCodeFile.max_debug_sub_str_len] + "... " + \
+                    byte_code[-ByteCodeFile.max_debug_sub_str_len:]
 
             mnemonic = line["term"].mnemonic
 
             if len(mnemonic) > ByteCodeFile.max_debug_str_len:
-                mnemonic = mnemonic[:ByteCodeFile.max_debug_sub_str_len] + "... " + mnemonic[
-                                                                                    -ByteCodeFile.max_debug_sub_str_len:]
+                mnemonic = \
+                    mnemonic[:ByteCodeFile.max_debug_sub_str_len] + "... " + \
+                    mnemonic[-ByteCodeFile.max_debug_sub_str_len:]
 
             lines.append("{} - {} - {}".format(hex_address, byte_code, mnemonic))
 
