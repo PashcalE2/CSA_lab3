@@ -488,9 +488,9 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 В качестве тестов использовано два алгоритма (в задании 3 + алгоритм по варианту):
 
-1. [hello world](python/golden/hello.txt).
-2. [cat](python/golden/cat.txt) -- программа `cat`, повторяем ввод на выводе.
-3. [hello user name](python/golden/hello_user_name.txt) -- программа `cat`, повторяем ввод на выводе.
+1. [hello world](python/golden/hello.yml).
+2. [cat](python/golden/cat.yml) -- программа `cat`, повторяем ввод на выводе.
+3. [hello user name](python/golden/hello_user_name.yml) -- программа `cat`, повторяем ввод на выводе.
 
 Интеграционные тесты реализованы [тут](python/golden_tests.py) через golden tests,
 конфигурация которых лежит в папке [golden](python/golden)
