@@ -1,9 +1,28 @@
+import isa
 import logging
 import re
 import sys
-
-import isa
 import translator
+
+
+class Exceptions:
+    class StopModellingError(Exception):
+        def __init__(self, msg):
+            super().__init__(msg)
+
+    class EntryPointError(StopModellingError):
+        def __init__(self, msg):
+            super().__init__(
+                "Адрес метки входа: {}, не может быть меньше 0 или больше {}"
+                    .format(msg, hex(DataPath.memory_max_uint))
+            )
+
+    class VarArgsCountError(StopModellingError):
+        def __init__(self, msg):
+            super().__init__(
+                "Переменное количество аргументов: {}, не может быть меньше 0 или больше {}"
+                    .format(msg, 255)
+            )
 
 
 class Device:
@@ -394,8 +413,7 @@ class DataPath:
 
     def __init__(self, start_address, code, input_device, output_device):
         if not (0 <= start_address <= DataPath.memory_max_uint):
-            raise Exception("Адрес метки `start = {}` не может быть меньше 0 или больше {}".format(start_address, hex(
-                DataPath.memory_max_uint)))
+            raise Exceptions.EntryPointError(start_address)
 
         self.memory = [0] * (DataPath.memory_max_uint + 1)
         self.input_device = input_device
@@ -1398,7 +1416,7 @@ class ControlUnit:
         self.data_path.signal_latch_br3()
 
         if (self.data_path.program_state.get_z() == 1) or (self.data_path.program_state.get_n() == 1):
-            raise Exception("Машина упала")
+            raise Exceptions.VarArgsCountError(self.data_path.data_register.get())
 
         if opcode == isa.InstructionSet.LCOMB.opcode:
             # запоминаем первый аргумент (значение, и туда будем записывать)
@@ -1601,7 +1619,6 @@ def simulation(start_address: int, code: list, input_schedule: list, limit: int)
         logging.info("Машина остановилась")
     except Exception as e:
         logging.warning("{}".format(e))
-        raise e
 
     if instr_counter >= limit:
         logging.warning("Предел превышен")
@@ -1632,7 +1649,7 @@ def main(code_file, input_file):
     """
     start_address, code = isa.ByteCodeFile.read_code(code_file)
 
-    with open(input_file, "r", encoding="utf-8") as file:
+    with open(input_file, encoding="utf-8") as file:
         input_text = file.read()
         input_schedule = InputScheduler.make_from(input_text)
 
