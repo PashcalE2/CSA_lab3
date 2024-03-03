@@ -1,9 +1,8 @@
 #!/usr/bin/python3
+import isa
 import re
 import sys
-from typing import ClassVar, Pattern, AnyStr
-
-import isa
+import typing
 
 
 def data_dict(datatype, value):
@@ -58,21 +57,24 @@ class Parser:
     Также содержит все необходимые методы для поиска элементов языка в подстроке
     """
 
-    org_directive: ClassVar[str] = isa.OrgDirective.ORG
-    type_directives_names: ClassVar[list] = list(isa.DataTypeDirectives.directive_by_name.keys())
-    number_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"([\-+]?(0x[\da-f]+|\d+))")
-    string_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"(\'[^\']+\')")
-    label_name_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"([_.a-z][_.\da-z]*)")
-    org_directive_regex: ClassVar[Pattern[AnyStr]] = re.compile(r"org\s*(0x[\da-f]+|\d+)")
-    general_purpose_registers: ClassVar[dict] = {value.name for value in isa.Registers.code_to_general_register_dict.values()}
+    org_directive: typing.ClassVar[str] = isa.OrgDirective.ORG
+    type_directives_names: typing.ClassVar[list] = list(isa.DataTypeDirectives.directive_by_name.keys())
+    number_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"([\-+]?(0x[\da-f]+|\d+))")
+    string_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"(\'[^\']+\')")
+    label_name_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"([_.a-z][_.\da-z]*)")
+    org_directive_regex: typing.ClassVar[typing.Pattern[typing.AnyStr]] = re.compile(r"org\s*(0x[\da-f]+|\d+)")
+    general_purpose_registers: typing.ClassVar[dict] = {
+        value.name for value in isa.Registers.code_to_general_register_dict.values()
+    }
 
-    mnemonic_to_instruction_dict: ClassVar[dict] = isa.InstructionSet.mnemonic_to_instruction_dict
+    mnemonic_to_instruction_dict: typing.ClassVar[dict] = isa.InstructionSet.mnemonic_to_instruction_dict
 
-    opcode_to_mnemonic_dict: ClassVar[dict] = {
+    opcode_to_mnemonic_dict: typing.ClassVar[dict] = {
         value.opcode: value.mnemonic for value in mnemonic_to_instruction_dict.values()
     }
 
-    key_words: ClassVar[set] = set(list(mnemonic_to_instruction_dict.keys()) + list(org_directive) + list(type_directives_names))
+    key_words: typing.ClassVar[set] = set(list(mnemonic_to_instruction_dict.keys()) +
+                                          list(org_directive) + list(type_directives_names))
 
     class Exceptions:
         class LabelError(Exception):
