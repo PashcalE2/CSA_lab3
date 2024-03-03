@@ -376,7 +376,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
     - `byte == 0xFF` 
     - `word == 0xFE` 
     - `dword == 0xFD`
-  - `1` байт-код операции (содержатся в классе [InstructionSet](isa.py))
+  - `1` байт-код операции (содержатся в классе [InstructionSet](python/isa.py))
   - если это операция с переменным числом аргументов, то:
     - `1` байт-код количества аргументов -- значение в промежутке `0x00 - 0xFF`
   - `1` байт-код на тип текущего аргумента:
@@ -490,7 +490,8 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 1. [hello world](python/golden/hello.yml).
 2. [cat](python/golden/cat.yml) -- программа `cat`, повторяем ввод на выводе.
-3. [hello user name](python/golden/hello_user_name.yml) -- программа `cat`, повторяем ввод на выводе.
+3. [hello user name](python/golden/hello_user_name.yml) -- пишет `Whats your name? Hello, <ввод>!`.
+4. [prob2](python/golden/prob2.yml) -- выводит сумму четных чисел Фибоначчи которые не больше 4000000. `Answer: <число>`.
 
 Интеграционные тесты реализованы [тут](python/golden_test.py) через golden tests,
 конфигурация которых лежит в папке [golden](python/golden)
@@ -536,8 +537,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
+
       - name: Run tests and collect coverage
         run: |
+          echo "Current directory items:"
+          echo *
           poetry run coverage run -m pytest .
           poetry run coverage report -m
         env:
@@ -560,16 +564,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
-      - name: Check code formatting with Ruff
-        run: poetry run ruff format --check .
 
       - name: Run Ruff linters
-        run: poetry run ruff check .
+        run: |
+          poetry run python -m ruff translator.py
+          poetry run python -m ruff machine.py
+          poetry run python -m ruff isa.py
 ```
 
 где:
 
-- `ryukzak/python-tools` -- docker образ, который содержит все необходимые для проверки утилиты. Подробнее: [Dockerfile](/src/Dockerfiles/python-tools.Dockerfile)
 - `poetry` -- управления зависимостями для языка программирования Python.
 - `coverage` -- формирование отчёта об уровне покрытия исходного кода.
 - `pytest` -- утилита для запуска тестов.

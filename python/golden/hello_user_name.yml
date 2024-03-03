@@ -1,0 +1,321 @@
+in_source: |-
+  org 0
+  v0_input: word write_handler
+  v1_output: word read_handler
+
+  org 0x20
+  msg1: byte 'Whats your name? ',0
+  msg2: byte 'Hello, ',0
+  msg3: byte '!',0
+
+  current: byte 0
+  output_str: byte 256 dup(0)
+
+
+  org 0x1000
+  start:
+      ei
+
+      push output_str      ; sum of strings
+      push msg1            ; additional string
+      call add_to_str      ; push ip, add_to_str => ip
+      add byte [current], r1  ; we added r1 chars
+      pop r1
+      pop r1
+
+
+      mov r1, output_str      ; calc sum-string last char pointer
+      add byte r1, [current]
+
+      push r1              ; sum of strings
+      push msg2            ; additional string
+      call add_to_str      ; push ip, add_to_str => ip
+      add byte [current], r1  ; we added r1 chars
+      pop r1
+      pop r1
+
+
+      mov r1, output_str      ; calc sum-string last char pointer
+      add byte r1, [current]
+
+      push r1              ; sum of strings
+      call read
+      dec r1
+      add byte [current], r1  ; we read r1 chars
+      pop r1
+
+
+      mov r1, output_str
+      add byte r1, [current]
+
+      push r1
+      push msg3
+      call add_to_str
+      add byte [current], r1 ; we added r1 chars
+      pop r1
+      pop r1
+
+      push output_str
+      call write
+      pop r1
+
+      halt
+
+
+  add_to_str:
+      mov r7, [sp+4] ; add_base
+      mov r6, [sp+2] ; additional_base
+      mov r5, 0 ; counter
+
+  .loop:
+      cmp byte [r6+r5], 0
+      jz add_to_str.ret
+      mov [r7+r5], [r6+r5]
+      inc r5
+      jmp add_to_str.loop
+
+  .ret:
+      mov r1, r5
+      ret
+
+
+  write:
+      mov r7, [sp+2] ; base
+      mov r6, 0
+  .wait:
+      mov byte r1, [0x12]
+      cmp byte r1, 0
+      jne write.int
+      jmp write.wait
+  .int:
+      int 0
+      cmp byte [r7+r6], 0
+      jz write.ret
+      inc r6
+      jne write.wait
+
+  .ret:
+      ret
+
+  write_handler:
+      mov byte [0x13], [r6+r7]
+      mov byte [0x12], 0
+      iret
+
+
+  read:
+      mov r7, [sp+2] ; base
+      mov r6, 0
+  .wait:
+      cmp byte [0x10], 0 ; check flag
+      jz read.wait ;
+
+      int 1
+      inc r6
+      cmp byte [r7+r6*1-1], 0
+      jz read.ret
+      jmp read.wait
+  .ret:
+      mov r1, r6
+      ret
+
+  read_handler:
+      mov byte [r7+r6], [0x11] ; save to buffer
+      mov byte [0x10], 0
+      iret
+
+in_stdin: |-
+  [(10, 'J'), (20, 'a'), (21, 'c'), (32, 'k')]
+out_code_debug: |-
+  Start address = 4096
+  Code lines count = 80 | 0x50
+  <address> - <hex asm> - <mnemonic>
+  0000 - 10 e7 - v0_input: word write_handler
+  0002 - 11 2d - v1_output: word read_handler
+  0020 - 57 68 61 74 73 2... 61 6d 65 3f 20 0 - msg1: byte 'What...  your name? ', 0
+  0032 - 48 65 6c 6c 6f 2c 20 0 - msg2: byte 'Hello, ', 0
+  003a - 21 0 - msg3: byte '!', 0
+  003c - 0 - current: byte 0
+  003d - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - output_str: byte... 0, 0, 0, 0, 0, 0
+  1000 - 6 - ei
+  1001 - 50 ff 0 3d - push output_str
+  1005 - 50 ff 0 20 - push msg1
+  1009 - 51 ff 10 82 - call add_to_str
+  100d - ff a0 40 ff 0 3c 81 - add byte [current], r1
+  1014 - 71 81 - pop r1
+  1016 - 71 81 - pop r1
+  1018 - 80 81 ff 0 3d - mov r1, output_str
+  101d - ff a0 81 40 ff 0 3c - add byte r1, [current]
+  1024 - 50 81 - push r1
+  1026 - 50 ff 0 32 - push msg2
+  102a - 51 ff 10 82 - call add_to_str
+  102e - ff a0 40 ff 0 3c 81 - add byte [current], r1
+  1035 - 71 81 - pop r1
+  1037 - 71 81 - pop r1
+  1039 - 80 81 ff 0 3d - mov r1, output_str
+  103e - ff a0 81 40 ff 0 3c - add byte r1, [current]
+  1045 - 50 81 - push r1
+  1047 - 51 ff 10 f9 - call read
+  104b - 63 81 - dec r1
+  104d - ff a0 40 ff 0 3c 81 - add byte [current], r1
+  1054 - 71 81 - pop r1
+  1056 - 80 81 ff 0 3d - mov r1, output_str
+  105b - ff a0 81 40 ff 0 3c - add byte r1, [current]
+  1062 - 50 81 - push r1
+  1064 - 50 ff 0 3a - push msg3
+  1068 - 51 ff 10 82 - call add_to_str
+  106c - ff a0 40 ff 0 3c 81 - add byte [current], r1
+  1073 - 71 81 - pop r1
+  1075 - 71 81 - pop r1
+  1077 - 50 ff 0 3d - push output_str
+  107b - 51 ff 10 b1 - call write
+  107f - 71 81 - pop r1
+  1081 - 1 - halt
+  1082 - 80 87 41 80 ff 0 4 - mov r7, [sp+4]
+  1089 - 80 86 41 80 ff 0 2 - mov r6, [sp+2]
+  1090 - 80 85 ff 0 0 - mov r5, 0
+  1095 - ff b0 41 86 85 ff 0 - cmp byte [r6+r5], 0
+  109c - 41 ff 10 ad - jz add_to_str.ret
+  10a0 - 80 41 87 85 41 86 85 - mov [r7+r5], [r6+r5]
+  10a7 - 62 85 - inc r5
+  10a9 - 40 ff 10 95 - jmp add_to_str.loop
+  10ad - 80 81 85 - mov r1, r5
+  10b0 - 8 - ret
+  10b1 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+  10b8 - 80 86 ff 0 0 - mov r6, 0
+  10bd - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
+  10c4 - ff b0 81 ff 0 - cmp byte r1, 0
+  10c9 - 42 ff 10 d1 - jne write.int
+  10cd - 40 ff 10 bd - jmp write.wait
+  10d1 - 52 ff 0 0 - int 0
+  10d5 - ff b0 41 87 86 ff 0 - cmp byte [r7+r6], 0
+  10dc - 41 ff 10 e6 - jz write.ret
+  10e0 - 62 86 - inc r6
+  10e2 - 42 ff 10 bd - jne write.wait
+  10e6 - 8 - ret
+  10e7 - ff 80 40 ff 0 13 41 86 87 - mov byte [0x13], [r6+r7]
+  10f0 - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+  10f8 - 9 - iret
+  10f9 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+  1100 - 80 86 ff 0 0 - mov r6, 0
+  1105 - ff b0 40 ff 0 10 ff 0 - cmp byte [0x10], 0
+  110d - 41 ff 11 5 - jz read.wait
+  1111 - 52 ff 0 1 - int 1
+  1115 - 62 86 - inc r6
+  1117 - ff b0 53 87 86 ff 0 1 ff 0 - cmp byte [r7+r6*1-1], 0
+  1121 - 41 ff 11 29 - jz read.ret
+  1125 - 40 ff 11 5 - jmp read.wait
+  1129 - 80 81 86 - mov r1, r6
+  112c - 8 - ret
+  112d - ff 80 41 87 86 40 ff 0 11 - mov byte [r7+r6], [0x11]
+  1136 - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
+  113e - 9 - iret
+
+out_stdout: |
+  Output: Whats your name? Hello, Jack!
+  instr_counter: 563
+
+out_log: |
+  DEBUG:root:TICK:        0 | PS: *W* _i_ _e_ _n_ _z_ _v_ _c_ | IP: 10 00 | AR: 00 00 | MEM[AR]: 10 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 00 | DN: 00 00 | ABR1: 00 00 | ABR2: 00 00 | ABR3: 00 00 | SP: 00 00 | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 00 | Mnemonic: nop
+  DEBUG:root:TICK:        1 | PS: *W* _i_ *E* _n_ _z_ _v_ _c_ | IP: 10 01 | AR: 10 00 | MEM[AR]: 06 | DR: 00 00 00 06 | AC: 00 00 00 00 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 06 | DN: 00 00 | ABR1: 00 00 | ABR2: 00 00 | ABR3: 00 00 | SP: 00 00 | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 00 | Mnemonic: ei
+  DEBUG:root:TICK:        2 | PS: *W* _i_ *E* _n_ _z_ _v_ _c_ | IP: 10 05 | AR: ff fe | MEM[AR]: 00 | DR: 00 3d 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 06 50 | DN: 00 00 | ABR1: 00 00 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fe | MEM[SP]: 00 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 00 | Mnemonic: push
+  DEBUG:root:TICK:        3 | PS: *W* _i_ *E* _n_ _z_ _v_ _c_ | IP: 10 09 | AR: ff fc | MEM[AR]: 00 | DR: 00 20 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 50 | DN: 00 00 | ABR1: 00 00 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fc | MEM[SP]: 00 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 00 | Mnemonic: push
+  DEBUG:root:TICK:        4 | PS: *W* _i_ *E* _n_ _z_ _v_ _c_ | IP: 10 82 | AR: ff fa | MEM[AR]: 10 | DR: 10 0d 00 00 | AC: 00 00 10 82 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 51 | DN: 00 00 | ABR1: 00 00 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 00 | Mnemonic: call
+  DEBUG:root:TICK:        5 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 89 | AR: ff ff | MEM[AR]: 3d | DR: 00 00 00 3d | AC: 00 00 10 82 | BR1: 00 00 00 00 | BR2: 00 00 00 3d | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 00 | ABR1: ff fe | ABR2: 00 00 | ABR3: 00 04 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 00 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:        6 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 90 | AR: ff fd | MEM[AR]: 20 | DR: 00 00 00 20 | AC: 00 00 10 82 | BR1: 00 00 00 00 | BR2: 00 00 00 20 | BR3: 00 00 00 00 | CR: 3d 80 | DN: 00 00 | ABR1: ff fc | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:        7 | PS: *W* _i_ *E* _n_ *Z* *V* _c_ | IP: 10 95 | AR: 10 94 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 10 82 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 20 80 | DN: 00 00 | ABR1: ff fc | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:        8 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 57 | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 00 | ABR1: 00 20 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:        9 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 00 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 00 | ABR1: 00 20 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       10 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 3e | MEM[AR]: 68 | DR: 00 57 68 00 | AC: 00 00 10 ad | BR1: 00 00 00 3d | BR2: 00 00 57 68 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 3f | ABR1: 00 20 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 00 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       11 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 68 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 3d | BR2: 00 00 57 68 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 3f | ABR1: 00 20 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       12 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 3d | BR2: 00 00 57 68 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 3f | ABR1: 00 20 | ABR2: 00 00 | ABR3: 00 00 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       13 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 68 | BR1: 00 00 00 3d | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 3f | ABR1: 00 21 | ABR2: 00 00 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       14 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 3d | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 3f | ABR1: 00 21 | ABR2: 00 00 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       15 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 3f | MEM[AR]: 61 | DR: 00 68 61 00 | AC: 00 00 10 ad | BR1: 00 00 00 3e | BR2: 00 00 68 61 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 40 | ABR1: 00 21 | ABR2: 00 00 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       16 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 61 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 3e | BR2: 00 00 68 61 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 40 | ABR1: 00 21 | ABR2: 00 00 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 02 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       17 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 3e | BR2: 00 00 68 61 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 40 | ABR1: 00 21 | ABR2: 00 00 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 02 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       18 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 61 | BR1: 00 00 00 3e | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 40 | ABR1: 00 22 | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 02 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       19 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 3e | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 40 | ABR1: 00 22 | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 02 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       20 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 40 | MEM[AR]: 74 | DR: 00 61 74 00 | AC: 00 00 10 ad | BR1: 00 00 00 3f | BR2: 00 00 61 74 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 41 | ABR1: 00 22 | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 02 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       21 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 74 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 3f | BR2: 00 00 61 74 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 41 | ABR1: 00 22 | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 03 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       22 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 3f | BR2: 00 00 61 74 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 41 | ABR1: 00 22 | ABR2: 00 00 | ABR3: 00 02 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 03 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       23 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 74 | BR1: 00 00 00 3f | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 41 | ABR1: 00 23 | ABR2: 00 00 | ABR3: 00 03 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 03 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       24 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 3f | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 41 | ABR1: 00 23 | ABR2: 00 00 | ABR3: 00 03 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 03 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       25 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 41 | MEM[AR]: 73 | DR: 00 74 73 00 | AC: 00 00 10 ad | BR1: 00 00 00 40 | BR2: 00 00 74 73 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 42 | ABR1: 00 23 | ABR2: 00 00 | ABR3: 00 03 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 03 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       26 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 73 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 40 | BR2: 00 00 74 73 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 42 | ABR1: 00 23 | ABR2: 00 00 | ABR3: 00 03 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 04 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       27 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 40 | BR2: 00 00 74 73 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 42 | ABR1: 00 23 | ABR2: 00 00 | ABR3: 00 03 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 04 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       28 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 73 | BR1: 00 00 00 40 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 42 | ABR1: 00 24 | ABR2: 00 00 | ABR3: 00 04 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 04 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       29 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 40 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 42 | ABR1: 00 24 | ABR2: 00 00 | ABR3: 00 04 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 04 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       30 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 42 | MEM[AR]: 20 | DR: 00 73 20 00 | AC: 00 00 10 ad | BR1: 00 00 00 41 | BR2: 00 00 73 20 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 43 | ABR1: 00 24 | ABR2: 00 00 | ABR3: 00 04 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 04 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       31 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 20 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 41 | BR2: 00 00 73 20 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 43 | ABR1: 00 24 | ABR2: 00 00 | ABR3: 00 04 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 05 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       32 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 41 | BR2: 00 00 73 20 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 43 | ABR1: 00 24 | ABR2: 00 00 | ABR3: 00 04 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 05 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       33 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 20 | BR1: 00 00 00 41 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 43 | ABR1: 00 25 | ABR2: 00 00 | ABR3: 00 05 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 05 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       34 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 41 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 43 | ABR1: 00 25 | ABR2: 00 00 | ABR3: 00 05 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 05 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       35 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 43 | MEM[AR]: 79 | DR: 00 20 79 00 | AC: 00 00 10 ad | BR1: 00 00 00 42 | BR2: 00 00 20 79 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 44 | ABR1: 00 25 | ABR2: 00 00 | ABR3: 00 05 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 05 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       36 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 79 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 42 | BR2: 00 00 20 79 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 44 | ABR1: 00 25 | ABR2: 00 00 | ABR3: 00 05 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 06 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       37 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 42 | BR2: 00 00 20 79 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 44 | ABR1: 00 25 | ABR2: 00 00 | ABR3: 00 05 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 06 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       38 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 79 | BR1: 00 00 00 42 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 44 | ABR1: 00 26 | ABR2: 00 00 | ABR3: 00 06 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 06 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       39 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 42 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 44 | ABR1: 00 26 | ABR2: 00 00 | ABR3: 00 06 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 06 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       40 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 44 | MEM[AR]: 6f | DR: 00 79 6f 00 | AC: 00 00 10 ad | BR1: 00 00 00 43 | BR2: 00 00 79 6f | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 45 | ABR1: 00 26 | ABR2: 00 00 | ABR3: 00 06 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 06 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       41 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 6f 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 43 | BR2: 00 00 79 6f | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 45 | ABR1: 00 26 | ABR2: 00 00 | ABR3: 00 06 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 07 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       42 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 43 | BR2: 00 00 79 6f | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 45 | ABR1: 00 26 | ABR2: 00 00 | ABR3: 00 06 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 07 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       43 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 6f | BR1: 00 00 00 43 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 45 | ABR1: 00 27 | ABR2: 00 00 | ABR3: 00 07 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 07 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       44 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 43 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 45 | ABR1: 00 27 | ABR2: 00 00 | ABR3: 00 07 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 07 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:       45 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a7 | AR: 00 45 | MEM[AR]: 75 | DR: 00 6f 75 00 | AC: 00 00 10 ad | BR1: 00 00 00 44 | BR2: 00 00 6f 75 | BR3: 00 00 00 00 | CR: ad 80 | DN: 00 46 | ABR1: 00 27 | ABR2: 00 00 | ABR3: 00 07 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 07 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:       46 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 a9 | AR: 10 a8 | MEM[AR]: 85 | DR: 75 00 62 85 | AC: 00 00 10 ad | BR1: 00 00 00 44 | BR2: 00 00 6f 75 | BR3: 00 00 00 00 | CR: 00 62 | DN: 00 46 | ABR1: 00 27 | ABR2: 00 00 | ABR3: 00 07 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 08 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:       47 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 95 | AR: 10 ac | MEM[AR]: 95 | DR: 00 00 10 95 | AC: 00 00 10 95 | BR1: 00 00 00 44 | BR2: 00 00 6f 75 | BR3: 00 00 00 00 | CR: 85 40 | DN: 00 46 | ABR1: 00 27 | ABR2: 00 00 | ABR3: 00 07 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 08 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jmp
+  DEBUG:root:TICK:       48 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 9c | AR: 10 9b | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 75 | BR1: 00 00 00 44 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 46 | ABR1: 00 28 | ABR2: 00 00 | ABR3: 00 08 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 08 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:       49 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 a0 | AR: 10 9f | MEM[AR]: ad | DR: 00 00 10 ad | AC: 00 00 10 ad | BR1: 00 00 00 44 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 46 | ABR1: 00 28 | ABR2: 00 00 | ABR3: 00 08 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 00 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 08 | R6: 00 00 00 20 | R7: 00 00 00 3d | Mnemonic: jz
+  INFO:root: ... пропуск 463 тиков ...
+  DEBUG:root:TICK:      513 | PS: *W* *I* *E* _n_ _z_ *V* _c_ | IP: 10 f0 | AR: 00 13 | MEM[AR]: 00 | DR: 00 00 61 00 | AC: 00 00 00 00 | BR1: 00 00 00 13 | BR2: 00 00 00 61 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 14 | ABR1: 00 56 | ABR2: 00 05 | ABR3: 00 3d | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 19 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      514 | PS: *W* *I* *E* _n_ *Z* *V* _c_ | IP: 10 f8 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 19 | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      515 | PS: *W* _i_ *E* _n_ *Z* *V* _c_ | IP: 10 d5 | AR: ff fb | MEM[AR]: d5 | DR: 00 00 10 d5 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 09 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 19 | R7: 00 00 00 3d | Mnemonic: iret
+  DEBUG:root:TICK:      516 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 dc | AR: 10 db | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 61 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 56 | ABR2: 00 05 | ABR3: 00 19 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 19 | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      517 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 e0 | AR: 10 df | MEM[AR]: e6 | DR: 00 00 10 e6 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 13 | ABR1: 00 56 | ABR2: 00 05 | ABR3: 00 19 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 19 | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:      518 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 e2 | AR: 10 e1 | MEM[AR]: 86 | DR: 10 e6 62 86 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: e6 62 | DN: 00 13 | ABR1: 00 56 | ABR2: 00 05 | ABR3: 00 19 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:      519 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 bd | AR: 10 e5 | MEM[AR]: bd | DR: 00 00 10 bd | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 86 42 | DN: 00 13 | ABR1: 00 56 | ABR2: 00 05 | ABR3: 00 19 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      520 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 c4 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 01 | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 01 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      521 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 c9 | AR: 10 c8 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 01 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      522 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 d1 | AR: 10 cc | MEM[AR]: d1 | DR: 00 00 10 d1 | AC: 00 00 10 d1 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 42 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      523 | PS: *W* *I* *E* _n_ _z_ _v_ _c_ | IP: 10 e7 | AR: 00 01 | MEM[AR]: e7 | DR: 00 00 10 e7 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: d1 52 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: int
+  DEBUG:root:TICK:      524 | PS: *W* *I* *E* _n_ _z_ *V* _c_ | IP: 10 f0 | AR: 00 13 | MEM[AR]: 00 | DR: 00 00 63 00 | AC: 00 00 00 00 | BR1: 00 00 00 13 | BR2: 00 00 00 63 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 14 | ABR1: 00 57 | ABR2: 00 05 | ABR3: 00 3d | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      525 | PS: *W* *I* *E* _n_ *Z* *V* _c_ | IP: 10 f8 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      526 | PS: *W* _i_ *E* _n_ *Z* *V* _c_ | IP: 10 d5 | AR: ff fb | MEM[AR]: d5 | DR: 00 00 10 d5 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 09 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: iret
+  DEBUG:root:TICK:      527 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 dc | AR: 10 db | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 63 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 57 | ABR2: 00 05 | ABR3: 00 1a | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      528 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 e0 | AR: 10 df | MEM[AR]: e6 | DR: 00 00 10 e6 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 13 | ABR1: 00 57 | ABR2: 00 05 | ABR3: 00 1a | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1a | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:      529 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 e2 | AR: 10 e1 | MEM[AR]: 86 | DR: 10 e6 62 86 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: e6 62 | DN: 00 13 | ABR1: 00 57 | ABR2: 00 05 | ABR3: 00 1a | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:      530 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 bd | AR: 10 e5 | MEM[AR]: bd | DR: 00 00 10 bd | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 86 42 | DN: 00 13 | ABR1: 00 57 | ABR2: 00 05 | ABR3: 00 1a | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      531 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 c4 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 01 | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 01 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      532 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 c9 | AR: 10 c8 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 01 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      533 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 d1 | AR: 10 cc | MEM[AR]: d1 | DR: 00 00 10 d1 | AC: 00 00 10 d1 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 42 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      534 | PS: *W* *I* *E* _n_ _z_ _v_ _c_ | IP: 10 e7 | AR: 00 01 | MEM[AR]: e7 | DR: 00 00 10 e7 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: d1 52 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: int
+  DEBUG:root:TICK:      535 | PS: *W* *I* *E* _n_ _z_ *V* _c_ | IP: 10 f0 | AR: 00 13 | MEM[AR]: 00 | DR: 00 00 6b 00 | AC: 00 00 00 00 | BR1: 00 00 00 13 | BR2: 00 00 00 6b | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 14 | ABR1: 00 58 | ABR2: 00 05 | ABR3: 00 3d | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      536 | PS: *W* *I* *E* _n_ *Z* *V* _c_ | IP: 10 f8 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      537 | PS: *W* _i_ *E* _n_ *Z* *V* _c_ | IP: 10 d5 | AR: ff fb | MEM[AR]: d5 | DR: 00 00 10 d5 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 09 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: iret
+  DEBUG:root:TICK:      538 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 dc | AR: 10 db | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 6b | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 58 | ABR2: 00 05 | ABR3: 00 1b | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      539 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 e0 | AR: 10 df | MEM[AR]: e6 | DR: 00 00 10 e6 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 13 | ABR1: 00 58 | ABR2: 00 05 | ABR3: 00 1b | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1b | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:      540 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 e2 | AR: 10 e1 | MEM[AR]: 86 | DR: 10 e6 62 86 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: e6 62 | DN: 00 13 | ABR1: 00 58 | ABR2: 00 05 | ABR3: 00 1b | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:      541 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 bd | AR: 10 e5 | MEM[AR]: bd | DR: 00 00 10 bd | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 86 42 | DN: 00 13 | ABR1: 00 58 | ABR2: 00 05 | ABR3: 00 1b | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      542 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 c4 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 01 | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 01 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      543 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 c9 | AR: 10 c8 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 01 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      544 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 d1 | AR: 10 cc | MEM[AR]: d1 | DR: 00 00 10 d1 | AC: 00 00 10 d1 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 42 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      545 | PS: *W* *I* *E* _n_ _z_ _v_ _c_ | IP: 10 e7 | AR: 00 01 | MEM[AR]: e7 | DR: 00 00 10 e7 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: d1 52 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: int
+  DEBUG:root:TICK:      546 | PS: *W* *I* *E* _n_ _z_ *V* _c_ | IP: 10 f0 | AR: 00 13 | MEM[AR]: 00 | DR: 00 00 21 00 | AC: 00 00 00 00 | BR1: 00 00 00 13 | BR2: 00 00 00 21 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 14 | ABR1: 00 59 | ABR2: 00 05 | ABR3: 00 3d | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      547 | PS: *W* *I* *E* _n_ *Z* *V* _c_ | IP: 10 f8 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      548 | PS: *W* _i_ *E* _n_ *Z* *V* _c_ | IP: 10 d5 | AR: ff fb | MEM[AR]: d5 | DR: 00 00 10 d5 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 09 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: iret
+  DEBUG:root:TICK:      549 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 dc | AR: 10 db | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 21 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 59 | ABR2: 00 05 | ABR3: 00 1c | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      550 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 e0 | AR: 10 df | MEM[AR]: e6 | DR: 00 00 10 e6 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 13 | ABR1: 00 59 | ABR2: 00 05 | ABR3: 00 1c | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1c | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:      551 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 e2 | AR: 10 e1 | MEM[AR]: 86 | DR: 10 e6 62 86 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: e6 62 | DN: 00 13 | ABR1: 00 59 | ABR2: 00 05 | ABR3: 00 1c | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: inc
+  DEBUG:root:TICK:      552 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 bd | AR: 10 e5 | MEM[AR]: bd | DR: 00 00 10 bd | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 86 42 | DN: 00 13 | ABR1: 00 59 | ABR2: 00 05 | ABR3: 00 1c | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      553 | PS: *W* _i_ *E* _n_ _z_ *V* _c_ | IP: 10 c4 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 01 | AC: 00 00 10 bd | BR1: 00 00 00 12 | BR2: 00 00 00 01 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      554 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 c9 | AR: 10 c8 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 01 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      555 | PS: *W* _i_ *E* _n_ _z_ _v_ *C* | IP: 10 d1 | AR: 10 cc | MEM[AR]: d1 | DR: 00 00 10 d1 | AC: 00 00 10 d1 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 42 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: jnz
+  DEBUG:root:TICK:      556 | PS: *W* *I* *E* _n_ _z_ _v_ _c_ | IP: 10 e7 | AR: 00 01 | MEM[AR]: e7 | DR: 00 00 10 e7 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: d1 52 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: int
+  DEBUG:root:TICK:      557 | PS: *W* *I* *E* _n_ *Z* *V* _c_ | IP: 10 f0 | AR: 00 13 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 13 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 14 | ABR1: 00 5a | ABR2: 00 05 | ABR3: 00 3d | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      558 | PS: *W* *I* *E* _n_ *Z* *V* _c_ | IP: 10 f8 | AR: 00 12 | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 80 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fa | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: mov
+  DEBUG:root:TICK:      559 | PS: *W* _i_ *E* _n_ *Z* *V* _c_ | IP: 10 d5 | AR: ff fb | MEM[AR]: d5 | DR: 00 00 10 d5 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 09 | DN: 00 13 | ABR1: 00 12 | ABR2: 00 05 | ABR3: 00 01 | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: iret
+  DEBUG:root:TICK:      560 | PS: *W* _i_ *E* _n_ *Z* _v_ *C* | IP: 10 dc | AR: 10 db | MEM[AR]: 00 | DR: 00 00 00 00 | AC: 00 00 00 00 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 b0 | DN: 00 13 | ABR1: 00 5a | ABR2: 00 05 | ABR3: 00 1d | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: cmp
+  DEBUG:root:TICK:      561 | PS: *W* _i_ *E* _n_ *Z* _v_ *C* | IP: 10 e6 | AR: 10 df | MEM[AR]: e6 | DR: 00 00 10 e6 | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 00 41 | DN: 00 13 | ABR1: 00 5a | ABR2: 00 05 | ABR3: 00 1d | SP: ff fc | MEM[SP]: 10 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: jz
+  DEBUG:root:TICK:      562 | PS: *W* _i_ *E* _n_ *Z* _v_ *C* | IP: 10 7f | AR: ff fd | MEM[AR]: 7f | DR: 10 e6 10 7f | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: e6 08 | DN: 00 13 | ABR1: 00 5a | ABR2: 00 05 | ABR3: 00 1d | SP: ff fe | MEM[SP]: 00 | R1: 00 00 00 01 | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: ret
+  DEBUG:root:TICK:      563 | PS: *W* _i_ *E* _n_ *Z* _v_ *C* | IP: 10 81 | AR: ff ff | MEM[AR]: 3d | DR: 7f 71 00 3d | AC: 00 00 10 e6 | BR1: 00 00 00 12 | BR2: 00 00 00 00 | BR3: 00 00 00 00 | CR: 7f 71 | DN: 00 13 | ABR1: 00 5a | ABR2: 00 05 | ABR3: 00 1d | SP: 00 00 | MEM[SP]: 10 | R1: 00 00 00 3d | R2: 00 00 00 00 | R3: 00 00 00 00 | R4: 00 00 00 00 | R5: 00 00 00 01 | R6: 00 00 00 1d | R7: 00 00 00 3d | Mnemonic: pop
+  INFO:root:Машина остановилась

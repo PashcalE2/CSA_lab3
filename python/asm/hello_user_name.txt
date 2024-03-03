@@ -3,59 +3,58 @@ v0_input: word write_handler
 v1_output: word read_handler
 
 org 0x20
-input_buffer: byte 256 dup(0)
-buffer_head: byte 0
-
 msg1: byte 'Whats your name? ',0
 msg2: byte 'Hello, ',0
 msg3: byte '!',0
 
-input_msg: byte 256 dup(0)
+current: byte 0
+output_str: byte 256 dup(0)
 
-pointer: byte 0
-full: byte 256 dup(0)
 
+org 0x1000
 start:
     ei
 
-    push pointer
-    push msg1
-    call add_to_str
-    add byte [full], r1
+    push output_str      ; sum of strings
+    push msg1            ; additional string
+    call add_to_str      ; push ip, add_to_str => ip
+    add byte [current], r1  ; we added r1 chars
     pop r1
     pop r1
 
-    mov r1, pointer
-    add byte r1, [full]
-    push r1
-    push msg2
-    call add_to_str
-    add byte [full], r1
+
+    mov r1, output_str      ; calc sum-string last char pointer
+    add byte r1, [current]
+
+    push r1              ; sum of strings
+    push msg2            ; additional string
+    call add_to_str      ; push ip, add_to_str => ip
+    add byte [current], r1  ; we added r1 chars
     pop r1
     pop r1
 
-    push input_msg
+
+    mov r1, output_str      ; calc sum-string last char pointer
+    add byte r1, [current]
+
+    push r1              ; sum of strings
     call read
-    add byte [full], r1
+    dec r1
+    add byte [current], r1  ; we read r1 chars
     pop r1
 
-    mov r1, pointer
-    add byte r1, [full]
+
+    mov r1, output_str
+    add byte r1, [current]
+
     push r1
+    push msg3
     call add_to_str
-    add byte [full], r1
+    add byte [current], r1 ; we added r1 chars
     pop r1
     pop r1
 
-    mov r1, pointer
-    add byte r1, [full]
-    push r1
-    call add_to_str
-    add byte [full], r1
-    pop r1
-    pop r1
-
-    push pointer
+    push output_str
     call write
     pop r1
 
@@ -63,14 +62,14 @@ start:
 
 
 add_to_str:
-    mov r7, [sp+2] ; add_base
-    mov r6, [sp+4] ; additional_base
+    mov r7, [sp+4] ; add_base
+    mov r6, [sp+2] ; additional_base
     mov r5, 0 ; counter
 
 .loop:
-    cmp [r6+r5], 0
+    cmp byte [r6+r5], 0
     jz add_to_str.ret
-    mov [r7], [r6+r5]
+    mov [r7+r5], [r6+r5]
     inc r5
     jmp add_to_str.loop
 
@@ -88,8 +87,8 @@ write:
     jne write.int
     jmp write.wait
 .int:
-    cmp byte [r7+r6], 0
     int 0
+    cmp byte [r7+r6], 0
     jz write.ret
     inc r6
     jne write.wait
@@ -98,8 +97,8 @@ write:
     ret
 
 write_handler:
-    mov byte [0x12], 0
     mov byte [0x13], [r6+r7]
+    mov byte [0x12], 0
     iret
 
 
@@ -111,7 +110,8 @@ read:
     jz read.wait ;
 
     int 1
-    cmp byte [r7+r6], 0
+    inc r6
+    cmp byte [r7+r6*1-1], 0
     jz read.ret
     jmp read.wait
 .ret:

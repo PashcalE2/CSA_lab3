@@ -1,62 +1,121 @@
-section data
-    limit w 4000000
+org 0
+v0_input: word write_handler
 
-section code
+org 0x20
+result_number: dword 0
 
-global _start
+current: byte 0
+output_str: 'Answer: '
 
-_start:
-    mov rcx, 1
-    mov rdx, 2
-    mov r8, 2
-    xor rax, rax
 
-.sum:
-    mov r9, r8
-    and r9, 1
-    cmp r9, 0
-    jnz .loop
-    add rax, r8
+org 0x1000
+start:
+    ei
+
+    call prob2 ; ans in r1
+
+    push dword r1           ; number to save as str
+    mov r1, [current]
+    add r1, output_str
+    push r1                 ; where to save
+    call uint_to_str
+    pop r1
+    pop r1
+
+    push output_str
+    call write
+    pop r1
+
+    halt
+
+prob2:
+    mov dword r7, 4000000 ; limit
+    mov dword r6, 0       ; sum
+    mov dword r5, 2       ; fib i
+    mov dword r4, 1       ; fib i-1
+    mov dword r3, 0       ; fib buf
+    mov dword r2, 3       ; is_even counter
 .loop:
-    add r8, rcx
-    mov rcx, rdx
-    mov rdx, r8
-    cmp r8, limit
-    jle .sum
+    cmp dword r2, 3
+    jnz prob2.calc_next
+    add dword r6, r5
+    mov dword r2, 0
 
-.uint_to_string:
-    mov rax, r8
-    mov r8, 10
+.calc_next:
+    mov dword r3, r5
+    add dword r5, r4
+    mov dword r4, r3
 
-    push rbx
-    mov rbx, rsp
+    cmp dword r5, r7
+    jg prob2.ret
+    inc dword r2
+    jmp prob2.loop
+.ret:
+    mov dword r1, r6
+    ret
 
-    dec rsp ; string-end
-    mov byte[rsp], 0 ; null-terminator
 
-.uint_to_string.loop:
-    dec rsp
-    xor rdx, rdx
-    div r8
-    add rdx, '0'
-    mov byte[rsp], dl
+uint_to_str:
+    mov dword r7, [sp+4]  ; number
+    mov r6, [sp+2]        ; string pointer
+    mov r5, 0             ; char counter
+    push byte 0
+.loop:
+    mov dword r4, r7
+    mod dword r4, 10
+    div r7, 10
+    add byte r4, '0'
+    push byte r4
 
-    cmp rax, 0
-    jg .loop
+    cmp dword r7, 0
+    jnz uint_to_str.loop
 
-.ans:
-    mov rsi, rsp
-    mov rsp, rbx
-    pop rbx
+uint_to_str.write:
+    pop byte r4
+    mov byte [r6+r5], r4
+    inc r5
+    cmp byte r4, 0
+    jnz uint_to_str.write
+    ret
 
-.print_string:
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, rdi
-    mov rdx, 13
-    syscall
 
-    mov rax, 60
-    mov rdi, 0
-    syscall
+add_to_str:
+    mov r7, [sp+4] ; add_base
+    mov r6, [sp+2] ; additional_base
+    mov r5, 0 ; counter
+
+.loop:
+    cmp byte [r6+r5], 0
+    jz add_to_str.ret
+    mov [r7+r5], [r6+r5]
+    inc r5
+    jmp add_to_str.loop
+
+.ret:
+    mov r1, r5
+    ret
+
+
+write:
+    mov r7, [sp+2] ; base
+    mov r6, 0
+.wait:
+    mov byte r1, [0x12]
+    cmp byte r1, 0
+    jne write.int
+    jmp write.wait
+.int:
+    int 0
+    cmp byte [r7+r6], 0
+    jz write.ret
+    inc r6
+    jne write.wait
+
+.ret:
+    ret
+
+write_handler:
+    mov byte [0x13], [r6+r7]
+    mov byte [0x12], 0
+    iret
 

@@ -2,7 +2,7 @@ Start address = 47
 Code lines count = 17 | 0x11
 <address> - <hex asm> - <mnemonic>
 0000 - 0 5b - v0_input: word v0_handler
-0020 - 68 65 6c 6c 6f 2... 6f 72 6c 64 21 0 - msg: byte 'hello, world!', 0
+0020 - 48 65 6c 6c 6f 2... 6f 72 6c 64 21 0 - msg: byte 'Hello, world!', 0
 002e - 0 - sent_char: byte 0
 002f - ff 80 82 ff 0 - mov byte r2, 0
 0034 - 6 - ei

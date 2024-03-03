@@ -48,20 +48,22 @@ class InputDevice(Device):
         super().live()
 
         if self.current_token >= len(self.buffer):
-            self.ready = 0
+            self.ready = 1
             return
 
         time, token = self.buffer[self.current_token]
         if self.current_time >= time:
-            if self.ready == 0:
-                self.current_token += 1
             self.ready = 1
 
     def get_current_token(self):
         if self.current_token >= len(self.buffer):
             return 0
 
-        time, token = self.buffer[self.current_token]
+        token = 20
+        if self.ready:
+            time, token = self.buffer[self.current_token]
+            self.current_token += 1
+            self.ready = 0
         return token
 
 
@@ -248,7 +250,7 @@ class ALU:
 
     def signal_decode_scale_factor(self, left: bool):
         value = self.left if left else self.right
-        self.set_result((value >> 2) & 3)
+        self.set_result(1 << ((value >> 2) & 3))
 
     def signal_inc(self, edit_flags: bool, left: bool):
         if left:
@@ -318,7 +320,7 @@ class ALU:
         low = value & mask
         high = (value >> bits_count) & mask
 
-        self.set_result(value & (self.result_max_uint - mask) | (high << bits_count) | low)
+        self.set_result(value & (self.result_max_uint - mask) | (high << bits_count) | low, edit_n=True, edit_z=True)
 
     def signal_lshift_byte(self, left: bool):
         value = self.left if left else self.right
@@ -338,14 +340,14 @@ class ALU:
         else:
             self.right = self.result_max_uint - self.right
 
-    def signal_and(self):
-        self.set_result(self.left & self.right)
+    def signal_and(self, edit_flags: bool):
+        self.set_result(self.left & self.right, edit_n=edit_flags, edit_z=edit_flags)
 
-    def signal_or(self):
-        self.set_result(self.left | self.right)
+    def signal_or(self, edit_flags: bool):
+        self.set_result(self.left | self.right, edit_n=edit_flags, edit_z=edit_flags)
 
-    def signal_xor(self):
-        self.set_result(self.left ^ self.right)
+    def signal_xor(self, edit_flags: bool):
+        self.set_result(self.left ^ self.right, edit_n=edit_flags, edit_z=edit_flags)
 
 
 class AddressCodeDecoder:
@@ -581,7 +583,7 @@ class ControlUnit:
 
             # IP => AR
             self.data_path.alu.signal_set_ip_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ar()
 
             # IP + 1 => IP
@@ -608,7 +610,7 @@ class ControlUnit:
         for i in range(repeats):
             # DN => AR
             self.data_path.alu.signal_set_dn_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ar()
 
             # DN + 1 => DN
@@ -640,7 +642,7 @@ class ControlUnit:
 
             # SP => AR
             self.data_path.alu.signal_set_sp_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ar()
 
             # MEM[AR] => DR[7..0]
@@ -691,7 +693,7 @@ class ControlUnit:
 
         # DR => CR
         self.data_path.alu.signal_set_dr_to_right()
-        self.data_path.alu.signal_or()
+        self.data_path.alu.signal_or(edit_flags=False)
         self.data_path.signal_latch_cr()
 
         directive = isa.InstructionPrefix.WORD
@@ -710,7 +712,7 @@ class ControlUnit:
 
             # DR => CR
             self.data_path.alu.signal_set_dr_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_cr()
 
             opcode = self.data_path.command_register.get_value() & 0xFF
@@ -742,7 +744,7 @@ class ControlUnit:
 
             # DR => IP
             self.data_path.alu.signal_set_dr_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ip()
 
         elif opcode == isa.InstructionSet.IRET.opcode:
@@ -754,7 +756,7 @@ class ControlUnit:
 
             # DR => IP
             self.data_path.alu.signal_set_dr_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ip()
 
     def decode_arg_prefix(self):
@@ -771,18 +773,25 @@ class ControlUnit:
         # ALU => REG
         if register_code == isa.Registers.SP.code:
             self.data_path.signal_latch_sp()
+
         elif register_code == isa.Registers.R1.code:
             self.data_path.signal_latch_r1()
+
         elif register_code == isa.Registers.R2.code:
             self.data_path.signal_latch_r2()
+
         elif register_code == isa.Registers.R3.code:
             self.data_path.signal_latch_r3()
+
         elif register_code == isa.Registers.R4.code:
             self.data_path.signal_latch_r4()
+
         elif register_code == isa.Registers.R5.code:
             self.data_path.signal_latch_r5()
+
         elif register_code == isa.Registers.R6.code:
             self.data_path.signal_latch_r6()
+
         elif register_code == isa.Registers.R7.code:
             self.data_path.signal_latch_r7()
 
@@ -790,18 +799,25 @@ class ControlUnit:
         # REG => ALU
         if register_code == isa.Registers.SP.code:
             self.data_path.alu.signal_set_sp_to_right()
+
         elif register_code == isa.Registers.R1.code:
             self.data_path.alu.signal_set_r1_to_left()
+
         elif register_code == isa.Registers.R2.code:
             self.data_path.alu.signal_set_r2_to_left()
+
         elif register_code == isa.Registers.R3.code:
             self.data_path.alu.signal_set_r3_to_left()
+
         elif register_code == isa.Registers.R4.code:
             self.data_path.alu.signal_set_r4_to_left()
+
         elif register_code == isa.Registers.R5.code:
             self.data_path.alu.signal_set_r5_to_right()
+
         elif register_code == isa.Registers.R6.code:
             self.data_path.alu.signal_set_r6_to_right()
+
         elif register_code == isa.Registers.R7.code:
             self.data_path.alu.signal_set_r7_to_right()
 
@@ -813,7 +829,7 @@ class ControlUnit:
         if arg_type_like == isa.InstructionPostfix.ArgIsImmediate:
             # значение идет дальше в памяти
             # 0 => DR
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_dr()
 
             self.read_from_memory(directive)
@@ -848,6 +864,8 @@ class ControlUnit:
                 # ABR2 * ABR3 => ABR2
                 self.data_path.alu.signal_set_abr2_to_left()
                 self.data_path.alu.signal_set_abr3_to_right()
+                if index_sign:
+                    self.data_path.alu.signal_neg(left=True)
                 self.data_path.alu.signal_mul()
                 self.data_path.signal_latch_abr3()
 
@@ -864,6 +882,8 @@ class ControlUnit:
                 # ABR1 + ABR3 => ABR1
                 self.data_path.alu.signal_set_abr1_to_left()
                 self.data_path.alu.signal_set_abr3_to_right()
+                if offset_sign:
+                    self.data_path.alu.signal_neg(left=False)
                 self.data_path.alu.signal_add(add_carry=False)
                 self.data_path.signal_latch_abr1()
 
@@ -877,7 +897,7 @@ class ControlUnit:
                 repeats = 4
 
             # 0 => DR
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_dr()
 
             for i in range(repeats):
@@ -889,7 +909,7 @@ class ControlUnit:
 
                 # ABR1 => AR
                 self.data_path.alu.signal_set_abr1_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ar()
 
                 # ABR1 + 1 => ABR1
@@ -921,31 +941,31 @@ class ControlUnit:
 
         if to_ac == 1:
             # ALU => AC
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ac()
         elif to_br == 1:
             # ALU => BR1
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_br1()
         elif to_br == 2:
             # ALU => BR2
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_br2()
         elif to_br == 3:
             # ALU => BR3
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_br3()
         elif to_abr == 1:
             # ALU => ABR1
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_abr1()
         elif to_abr == 2:
             # ALU => ABR2
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_abr2()
         elif to_abr == 3:
             # ALU => ABR3
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_abr3()
 
         return arg_type, arg_type_like
@@ -958,6 +978,7 @@ class ControlUnit:
         c = self.data_path.program_state.get_c()
 
         if opcode == isa.InstructionSet.NOT.opcode:
+            # VAL => ALU
             destination_type, destination_type_like = self.decode_instruction_arg_source(directive)
 
             register_is_left = isa.InstructionPostfix.decode_register(destination_type).is_left
@@ -967,6 +988,8 @@ class ControlUnit:
             self.data_path.alu.signal_not(left=register_is_left)
 
         elif opcode == isa.InstructionSet.NEG.opcode:
+            # VAL => ALU
+            # 1 => ALU(SXT)
             destination_type, destination_type_like = self.decode_instruction_arg_source(directive, sxt=1)
 
             register_is_left = isa.InstructionPostfix.decode_register(destination_type).is_left
@@ -975,6 +998,8 @@ class ControlUnit:
             self.data_path.alu.signal_neg(left=register_is_left)
 
         elif opcode == isa.InstructionSet.INC.opcode:
+            # VAL => ALU
+            # 1 => ALU(SXT)
             destination_type, destination_type_like = self.decode_instruction_arg_source(directive, sxt=1)
 
             register_is_left = isa.InstructionPostfix.decode_register(destination_type).is_left
@@ -983,6 +1008,8 @@ class ControlUnit:
             self.data_path.alu.signal_inc(edit_flags=True, left=register_is_left)
 
         elif opcode == isa.InstructionSet.DEC.opcode:
+            # VAL => ALU
+            # 1 => ALU(SXT)
             destination_type, destination_type_like = self.decode_instruction_arg_source(directive, sxt=1)
 
             register_is_left = isa.InstructionPostfix.decode_register(destination_type).is_left
@@ -991,148 +1018,165 @@ class ControlUnit:
             self.data_path.alu.signal_dec(edit_flags=True, left=register_is_left)
 
         elif opcode == isa.InstructionSet.SXT.opcode:
-            destination_type, destination_type_like = self.decode_instruction_arg_source(directive)
-
-            # SXT(AC) => ALU
-            self.data_path.alu.signal_sxt(directive == isa.InstructionPrefix.BYTE)
+            # VAL => ALU
+            # 1 => ALU(SXT)
+            destination_type, destination_type_like = self.decode_instruction_arg_source(directive, sxt=1)
 
         elif opcode == isa.InstructionSet.SWAB.opcode:
+            # VAL => ALU
             destination_type, destination_type_like = self.decode_instruction_arg_source(directive)
 
             register_is_left = isa.InstructionPostfix.decode_register(destination_type).is_left
 
-            # SXT(AC) => ALU
+            # SWAB
             self.data_path.alu.signal_swab(directive == isa.InstructionPrefix.WORD, left=register_is_left)
 
         elif opcode == isa.InstructionSet.JMP.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             self.data_path.alu.signal_set_ac_to_left()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JE.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             z = self.data_path.program_state.get_z()
             if z == 1:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JNE.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if z == 0:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JG.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if (n == v) and (z == 0):
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JGE.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if (n == v) or (z == 1):
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JA.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if (c == 0) and (z == 0):
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JAE.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if (c == 0) or (z == 1):
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JL.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if n != v:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JLE.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if (n != v) or (z == 1):
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JB.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if c == 1:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JBE.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if (c == 1) or (z == 1):
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JS.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if n == 1:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JNS.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if n == 0:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JNC.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if c == 0:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JV.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if v == 1:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.JNV.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if v == 0:
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.LOOP.opcode:
+            # VAL => AC
             destination_type, destination_type_like = self.decode_instruction_arg_source(directive, to_ac=1)
 
             register_is_left = isa.InstructionPostfix.decode_register(destination_type).is_left
@@ -1149,7 +1193,7 @@ class ControlUnit:
 
                 # ABR1 => DN
                 self.data_path.alu.signal_set_abr1_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_dn()
 
                 # DR => MEM[DN]
@@ -1162,7 +1206,12 @@ class ControlUnit:
                 self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.PUSH.opcode:
+            # VAL => ALU
             self.decode_instruction_arg_source(directive)
+
+            # ALU => DR
+            self.data_path.alu.signal_or(edit_flags=False)
+            self.data_path.signal_latch_dr()
 
             self.write_to_stack(directive)
             return
@@ -1176,14 +1225,15 @@ class ControlUnit:
             # SXT(DR) => ALU
             self.data_path.alu.signal_set_dr_to_right()
             self.data_path.alu.signal_sxt(directive == isa.InstructionPrefix.BYTE)
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
 
         elif opcode == isa.InstructionSet.CALL.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(isa.InstructionPrefix.WORD, to_ac=1)
 
             # IP => DR
             self.data_path.alu.signal_set_ip_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_dr()
 
             # DR => MEM[SP]
@@ -1191,10 +1241,11 @@ class ControlUnit:
 
             # AC => IP
             self.data_path.alu.signal_set_ac_to_left()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_ip()
             return
         elif opcode == isa.InstructionSet.INT.opcode:
+            # VAL => AC
             self.decode_instruction_arg_source(directive, to_ac=1)
 
             if self.data_path.program_state.get_ei() == 1:
@@ -1203,7 +1254,7 @@ class ControlUnit:
 
                 # IP => DR
                 self.data_path.alu.signal_set_ip_to_right()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_dr()
 
                 # MEM[SP] => DR
@@ -1219,7 +1270,7 @@ class ControlUnit:
 
                 # DR => IP
                 self.data_path.alu.signal_set_dr_to_right()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_ip()
             return
 
@@ -1233,7 +1284,7 @@ class ControlUnit:
 
             # ABR1 => DN
             self.data_path.alu.signal_set_abr1_to_left()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_dn()
 
             # DR => MEM[DN]
@@ -1249,14 +1300,14 @@ class ControlUnit:
             if destination_type_like == isa.InstructionPostfix.ArgsAreMemoryAddressing:
                 # ABR1 => BR1
                 self.data_path.alu.signal_set_abr1_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_br1()
 
         def remember_second(destination_type_like):
             if destination_type_like == isa.InstructionPostfix.ArgsAreMemoryAddressing:
                 # ABR1 => BR3
                 self.data_path.alu.signal_set_abr1_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_br3()
 
         destination_type1, destination_type_like1 = 0, 0
@@ -1270,7 +1321,7 @@ class ControlUnit:
             self.decode_instruction_arg_source(directive, to_br=2)
             # BR2 => ALU
             self.data_path.alu.signal_set_br2_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=True)
 
         elif opcode == isa.InstructionSet.AND.opcode:
             destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, to_ac=1)
@@ -1280,31 +1331,31 @@ class ControlUnit:
             # AC AND BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
-            self.data_path.alu.signal_and()
+            self.data_path.alu.signal_and(edit_flags=True)
         elif opcode == isa.InstructionSet.OR.opcode:
             destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, to_ac=1)
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC OR BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=True)
         elif opcode == isa.InstructionSet.XOR.opcode:
             destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, to_ac=1)
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC XOR BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
-            self.data_path.alu.signal_xor()
+            self.data_path.alu.signal_xor(edit_flags=True)
         elif (opcode == isa.InstructionSet.ADD.opcode) or (opcode == isa.InstructionSet.ADC.opcode):
             destination_type1, destination_type_like1 = self.decode_instruction_arg_source(directive, to_ac=1)
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC ADD BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
             self.data_path.alu.signal_add(add_carry=opcode == isa.InstructionSet.ADC.opcode)
@@ -1313,7 +1364,7 @@ class ControlUnit:
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC SUB BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
             self.data_path.alu.signal_sub()
@@ -1322,7 +1373,7 @@ class ControlUnit:
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC MUL BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
             self.data_path.alu.signal_mul()
@@ -1331,7 +1382,7 @@ class ControlUnit:
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC DIV BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
             self.data_path.alu.signal_div()
@@ -1340,14 +1391,14 @@ class ControlUnit:
             remember_first(destination_type_like1)
 
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC MOD BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
             self.data_path.alu.signal_mod()
         elif opcode == isa.InstructionSet.CMP.opcode:
             self.decode_instruction_arg_source(directive, to_ac=1)
             self.decode_instruction_arg_source(directive, to_br=2)
-            # AC AND BR2 => ALU
+            # AC SUB BR2 => ALU
             self.data_path.alu.signal_set_ac_to_left()
             self.data_path.alu.signal_set_br2_to_right()
             self.data_path.alu.signal_sub()
@@ -1362,7 +1413,7 @@ class ControlUnit:
 
             # AC => DR
             self.data_path.alu.signal_set_ac_to_left()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_dr()
 
             if destination_type_like2 == isa.InstructionPostfix.ArgIsRegister:
@@ -1375,7 +1426,7 @@ class ControlUnit:
 
                 # BR3 => DN
                 self.data_path.alu.signal_set_br3_to_right()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_dn()
 
                 # DR => MEM[DN]
@@ -1383,7 +1434,7 @@ class ControlUnit:
 
             # BR2
             self.data_path.alu.signal_set_br2_to_right()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
 
         if destination_type_like1 == isa.InstructionPostfix.ArgIsRegister:
             register_code = isa.InstructionPostfix.decode_register(destination_type1).code
@@ -1395,7 +1446,7 @@ class ControlUnit:
 
             # BR1 => DN
             self.data_path.alu.signal_set_br1_to_left()
-            self.data_path.alu.signal_or()
+            self.data_path.alu.signal_or(edit_flags=False)
             self.data_path.signal_latch_dn()
 
             # DR => MEM[DN]
@@ -1403,7 +1454,7 @@ class ControlUnit:
 
     def exec_var_args_instruction(self, directive, opcode):
         # 0 => DR
-        self.data_path.alu.signal_or()
+        self.data_path.alu.signal_or(edit_flags=False)
         self.data_path.signal_latch_dr()
 
         self.read_from_memory(isa.InstructionPrefix.BYTE)
@@ -1423,7 +1474,7 @@ class ControlUnit:
             if destination_type_like == isa.InstructionPostfix.ArgsAreMemoryAddressing:
                 # ABR1 => DN
                 self.data_path.alu.signal_set_abr1_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_dn()
 
             # BR3 - 1 => BR3
@@ -1466,7 +1517,7 @@ class ControlUnit:
 
                 # AC => ALU
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 # ALU => REG
                 self.latch_register_by_code(register_code)
             elif destination_type_like == isa.InstructionPostfix.ArgsAreMemoryAddressing:
@@ -1474,7 +1525,7 @@ class ControlUnit:
 
                 # AC => DR
                 self.data_path.alu.signal_set_ac_to_left()
-                self.data_path.alu.signal_or()
+                self.data_path.alu.signal_or(edit_flags=False)
                 self.data_path.signal_latch_dr()
 
                 # DR => MEM[DN]
@@ -1606,24 +1657,45 @@ def simulation(start_address: int, code: list, input_schedule: list, limit: int)
         input_device.live()
         output_device.live()
 
+    max_tail_to_out = 50
+    max_head_to_out = max_tail_to_out
+    log_limit = max_tail_to_out + max_head_to_out + 2
+    log_out_lines = []
+
     try:
         while instr_counter < limit:
-            logging.debug("%s", control_unit)
+            log_out_lines.append({"mod": "debug", "text": control_unit.__repr__()})
             control_unit.instruction_tick_gen()
             instr_counter += 1
 
             devices_live()
     except StopIteration:
-        logging.info("Машина остановилась")
+        log_out_lines.append({"mod": "info", "text": "Машина остановилась"})
     except Exception as e:
-        logging.warning("{}".format(e))
+        log_out_lines.append({"mod": "warning", "text": "{}".format(e)})
 
     if instr_counter >= limit:
-        logging.warning("Предел превышен")
+        log_out_lines.append({"mod": "warning", "text": "Предел превышен"})
 
-    output = "".join([chr(char) for char in output_device.get_buffer()])
+    if len(log_out_lines) > log_limit:
+        log_out_lines = \
+            log_out_lines[:max_tail_to_out] + \
+            [{"mod": "info", "text": " ... пропуск {} тиков ...".format(len(log_out_lines) - log_limit)}] + \
+            log_out_lines[-max_head_to_out - 2:]
 
-    return output, instr_counter
+    for item in log_out_lines:
+        if item["mod"] == "debug":
+            logging.debug(item["text"])
+
+        elif item["mod"] == "info":
+            logging.info(item["text"])
+
+        elif item["mod"] == "warning":
+            logging.warning(item["text"])
+
+    output_device_buffer = "".join([chr(char) for char in output_device.get_buffer()])
+
+    return output_device_buffer, instr_counter
 
 
 class InputScheduler:
@@ -1658,7 +1730,7 @@ def main(code_file, input_file):
         start_address,
         code,
         input_schedule=input_schedule,
-        limit=600,
+        limit=1000,
     )
 
     print("Output: {}".format(output))

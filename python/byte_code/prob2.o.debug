@@ -1,0 +1,80 @@
+Start address = 4096
+Code lines count = 77 | 0x4d
+<address> - <hex asm> - <mnemonic>
+0000 - 11 47 - v0_input: word write_handler
+0020 - 0 0 0 0 - result_number: dword 0
+0024 - 0 - current: byte 0
+1000 - 6 - ei
+1001 - 51 ff 10 28 - call prob2
+1005 - fd 50 81 - push dword r1
+1008 - 80 81 40 ff 0 24 - mov r1, [current]
+100e - a0 81 ff 10 0 - add r1, output_str
+1013 - 50 81 - push r1
+1015 - 51 ff 10 90 - call uint_to_str
+1019 - 71 81 - pop r1
+101b - 71 81 - pop r1
+101d - 50 ff 10 0 - push output_str
+1021 - 51 ff 11 11 - call write
+1025 - 71 81 - pop r1
+1027 - 1 - halt
+1028 - fd 80 87 ff 0 3d 9 0 - mov dword r7, 4000000
+1030 - fd 80 86 ff 0 0 0 0 - mov dword r6, 0
+1038 - fd 80 85 ff 0 0 0 2 - mov dword r5, 2
+1040 - fd 80 84 ff 0 0 0 1 - mov dword r4, 1
+1048 - fd 80 83 ff 0 0 0 0 - mov dword r3, 0
+1050 - fd 80 82 ff 0 0 0 3 - mov dword r2, 3
+1058 - fd b0 82 ff 0 0 0 3 - cmp dword r2, 3
+1060 - 42 ff 10 70 - jnz prob2.calc_next
+1064 - fd a0 86 85 - add dword r6, r5
+1068 - fd 80 82 ff 0 0 0 0 - mov dword r2, 0
+1070 - fd 80 83 85 - mov dword r3, r5
+1074 - fd a0 85 84 - add dword r5, r4
+1078 - fd 80 84 83 - mov dword r4, r3
+107c - fd b0 85 87 - cmp dword r5, r7
+1080 - 43 ff 10 8b - jg prob2.ret
+1084 - fd 62 82 - inc dword r2
+1087 - 40 ff 10 58 - jmp prob2.loop
+108b - fd 80 81 86 - mov dword r1, r6
+108f - 8 - ret
+1090 - fd 80 87 41 80 ff 0 4 - mov dword r7, [sp+4]
+1098 - 80 86 41 80 ff 0 2 - mov r6, [sp+2]
+109f - 80 85 ff 0 0 - mov r5, 0
+10a4 - ff 50 ff 0 - push byte 0
+10a8 - fd 80 84 87 - mov dword r4, r7
+10ac - fd a9 84 ff 0 0 0 a - mod dword r4, 10
+10b4 - a8 87 ff 0 a - div r7, 10
+10b9 - ff a0 84 ff 30 - add byte r4, 0x30
+10be - ff 50 84 - push byte r4
+10c1 - fd b0 87 ff 0 0 0 0 - cmp dword r7, 0
+10c9 - 42 ff 10 a8 - jnz uint_to_str.loop
+10cd - ff 71 84 - pop byte r4
+10d0 - ff 80 41 86 85 84 - mov byte [r6+r5], r4
+10d6 - 62 85 - inc r5
+10d8 - ff b0 84 ff 0 - cmp byte r4, 0
+10dd - 42 ff 10 cd - jnz uint_to_str.write
+10e1 - 8 - ret
+10e2 - 80 87 41 80 ff 0 4 - mov r7, [sp+4]
+10e9 - 80 86 41 80 ff 0 2 - mov r6, [sp+2]
+10f0 - 80 85 ff 0 0 - mov r5, 0
+10f5 - ff b0 41 86 85 ff 0 - cmp byte [r6+r5], 0
+10fc - 41 ff 11 d - jz add_to_str.ret
+1100 - 80 41 87 85 41 86 85 - mov [r7+r5], [r6+r5]
+1107 - 62 85 - inc r5
+1109 - 40 ff 10 f5 - jmp add_to_str.loop
+110d - 80 81 85 - mov r1, r5
+1110 - 8 - ret
+1111 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+1118 - 80 86 ff 0 0 - mov r6, 0
+111d - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
+1124 - ff b0 81 ff 0 - cmp byte r1, 0
+1129 - 42 ff 11 31 - jne write.int
+112d - 40 ff 11 1d - jmp write.wait
+1131 - 52 ff 0 0 - int 0
+1135 - ff b0 41 87 86 ff 0 - cmp byte [r7+r6], 0
+113c - 41 ff 11 46 - jz write.ret
+1140 - 62 86 - inc r6
+1142 - 42 ff 11 1d - jne write.wait
+1146 - 8 - ret
+1147 - ff 80 40 ff 0 13 41 86 87 - mov byte [0x13], [r6+r7]
+1150 - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+1158 - 9 - iret

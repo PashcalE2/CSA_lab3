@@ -99,10 +99,15 @@ class InstructionPostfix:
 
     OffsetAddressingFlag: typing.ClassVar[int] = 0x1
     IndexAddressingFlag: typing.ClassVar[int] = 0x2
-    OffsetSignFlag: typing.ClassVar[int] = 0x8
-    IndexSignFlag: typing.ClassVar[int] = 0x10
+    OffsetSignFlag: typing.ClassVar[int] = 0x10
+    IndexSignFlag: typing.ClassVar[int] = 0x20
 
     valid_scale_factors: typing.ClassVar[list] = [value.bytes_count for value in DataTypeDirectives.directives]
+    scale_factor_value_to_power: typing.ClassVar[dict] = {1: 0, 2: 1, 4: 2}
+
+    @staticmethod
+    def encode_scale_factor_power(power: str):
+        return InstructionPostfix.scale_factor_value_to_power[power]
 
     @staticmethod
     def like_arg_type(byte: int):
