@@ -528,21 +528,24 @@ class Parser:
 
     @staticmethod
     def try_find_address_offset(line: str):
+        line_copy = line[:]
         sign, line = Parser.try_find_addressing_sign(line)
 
         try:
             number, line = Parser.try_find_number(line)
-            return sign, number, line
         except Parser.Exceptions.NumberError:
             pass
+        else:
+            return sign, number, line
 
         try:
             reg, line = Parser.try_find_register(line)
-            return sign, reg, line
         except Parser.Exceptions.RegisterError:
             pass
+        else:
+            return sign, reg, line
 
-        raise Parser.Exceptions.AddressOffsetError(line)
+        raise Parser.Exceptions.AddressOffsetError(line_copy)
 
     @staticmethod
     def try_find_memory_addressing(line):
@@ -727,17 +730,29 @@ class Translator:
                     )
                 )
 
+        class InstructionArgsCountError(InstructionError):
+            def __init__(self, count):
+                super().__init__("{} - слишком много аргументов, максимум: {}".format(count, 0xFF))
+
         class InstructionValidationError(InstructionError):
             def __init__(self, msg):
                 super().__init__("{}".format(msg))
 
-        class UnknownStatement(Exception):
+        class UnknownStatementError(Exception):
             def __init__(self, msg):
-                super().__init__(msg)
+                super().__init__(
+                    "Не метка, не организация памяти, не определение данных и не инструкция: {}".format(msg)
+                )
 
-        class NoEntryPoint(Exception):
+        class NoEntryPointError(Exception):
             def __init__(self, msg):
-                super().__init__(msg)
+                super().__init__(
+                    "В коде должна присутствовать метка `{}`, откуда начнется исполнение программы".format(msg)
+                )
+
+        class MemoryLayersCrossingError(Exception):
+            def __init__(self, first, second):
+                super().__init__("Данные/код перекрыли друг друга: \n{}\n{}".format(first, second))
 
     @staticmethod
     def stage_1(text, print_err):
@@ -785,7 +800,6 @@ class Translator:
                 label, last_root_label = check_new_label(label, last_root_label)
 
                 code.append({"mem_address": 0, "label": label, "term": isa.Term(line_num, token)})
-                # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
             except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
                 raise e
@@ -799,7 +813,6 @@ class Translator:
                 # следующий байт-код будет иметь этот адрес
                 mem_address, base = str_to_number(mem_address)
                 code.append({"mem_address": mem_address, "is_org": True, "term": isa.Term(line_num, token)})
-                # print("[{}] Полученная мнемоника: {}".format(line_num + 1, token))
                 continue
             except Parser.Exceptions.OrgDirectivePatternError as e:
                 if print_err:
@@ -845,7 +858,6 @@ class Translator:
 
                 code.append({"mem_address": 0, "is_data": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
-                # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
                 continue
             except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
                 raise e
@@ -882,7 +894,7 @@ class Translator:
                     args_count = len(args)
 
                     if args_count > 0xFF:
-                        raise Exception("{} - слишком много аргументов, максимум: {}".format(args_count, 0xFF))
+                        raise Translator.Exceptions.InstructionArgsCountError(args_count)
 
                     data.extend(
                         isa.ByteCodeFile.number_to_big_endian(args_count, isa.DataTypeDirectives.BYTE.bytes_count)
@@ -920,7 +932,6 @@ class Translator:
 
                 code.append({"mem_address": 0, "is_instruction": True, "label": label, "data": data,
                              "term": isa.Term(line_num, term_mnemonic.strip(" "))})
-                # print("[{}] Полученная мнемоника: {}".format(line_num + 1, term_mnemonic))
                 continue
             except (Translator.Exceptions.LabelError, Translator.Exceptions.LabelRedefinitionError) as e:
                 raise e
@@ -928,13 +939,10 @@ class Translator:
                 if print_err:
                     print("Ошибка при проверке инструкции: {}".format(e))
 
-            raise Translator.Exceptions.UnknownStatement("Не понятно что написано")
+            raise Translator.Exceptions.UnknownStatementError(token)
 
         if Translator.entry_point_label not in labels:
-            raise Translator.Exceptions.NoEntryPoint(
-                "В коде должна присутствовать метка `{}`, откуда начнется исполнение программы"
-                .format(Translator.entry_point_label)
-            )
+            raise Translator.Exceptions.NoEntryPointError(Translator.entry_point_label)
 
         return labels, code
 
@@ -989,8 +997,6 @@ class Translator:
             elif "label" in line:
                 # только метка
                 labels_waiting_to_init.append(line["label"])
-            else:
-                raise Exception("Чето не то в словарях кода")
 
         return labels, code
 
@@ -1036,7 +1042,7 @@ class Translator:
         for i, line in enumerate(code):
             address = line["mem_address"]
             if address <= last_used_address:
-                raise Exception("Данные/код перекрыли друг друга: \n{}\n{}".format(code[i - 1], line))
+                raise Translator.Exceptions.MemoryLayersCrossingError(code[i - 1], line)
             last_used_address = address + len(line["byte_code"]) - 1
 
         return code
@@ -1072,9 +1078,6 @@ def main(source, target, target_debug, print_err=False):
 
     isa.ByteCodeFile.write(target, start_address, code)
     isa.ByteCodeFile.write_debug(target_debug, start_address, code)
-
-    # print("Количество строк исходного кода: {}".format(len(source.split("\n"))))
-    # print("Количество строк тела объектного файла: {}".format(len(code)))
 
 
 if __name__ == "__main__":
