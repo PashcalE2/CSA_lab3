@@ -39,6 +39,8 @@ jobs:
 
       - name: Run tests and collect coverage
         run: |
+          echo "Current directory items:"
+          echo *
           poetry run coverage run -m pytest .
           poetry run coverage report -m
         env:
@@ -61,3 +63,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
+
+      - name: Check code formatting with Ruff
+        run: poetry run ruff format --check .
+
+      - name: Run Ruff linters
+        run: poetry run ruff check .
