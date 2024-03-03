@@ -450,7 +450,7 @@ class DataRegister(Register):
 
 
 class ProgramStateRegister(Register):
-    available_signals = [0, 1]
+    available_signals: typing.ClassVar[list] = [0, 1]
 
     def __init__(self, name, code, byte_size, is_left):
         super().__init__(name, code, byte_size, is_left)
@@ -677,12 +677,10 @@ class ByteCodeFile:
         Прочесть бинарный машинный код из файла.
         """
 
-        start_address = 0
         code = []
 
         with open(filename, "rb") as file:
-            if not ByteCodeFile.check_header(file.read(len(ByteCodeFile.int_header))):
-                raise Exception("У файла неправильный заголовок")
+            assert ByteCodeFile.check_header(file.read(len(ByteCodeFile.int_header))), "У файла неправильный заголовок"
 
             start_address = int.from_bytes(file.read(2), "big")
             code_lines_count = int.from_bytes(file.read(2), "big")

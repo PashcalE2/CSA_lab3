@@ -408,7 +408,6 @@ class DataPath:
 
     io_data_size_in_bytes = 1
     io_data_max_uint = (1 << io_data_size_in_bytes * 8) - 1
-    available_signals: typing.ClassVar[list] = [0, 1]
 
     def __init__(self, start_address, code, input_device, output_device):
         if not (0 <= start_address <= DataPath.memory_max_uint):
@@ -524,12 +523,9 @@ class DataPath:
         self.program_state.set_value(self.alu.get_result())
 
     def signal_set_ps(self, w: int = -1, i: int = -1, ei: int = -1):
-        if ei in self.available_signals:
-            self.program_state.set_ei(ei)
-        if i in self.available_signals:
-            self.program_state.set_i(i)
-        if w in self.available_signals:
-            self.program_state.set_w(w)
+        self.program_state.set_ei(ei)
+        self.program_state.set_i(i)
+        self.program_state.set_w(w)
 
     def signal_set_nzvc_from_alu(self, edit_n=True, edit_z=True, edit_v=True, edit_c=True):
         if edit_n:
