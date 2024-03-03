@@ -471,7 +471,8 @@ class Parser:
 
         for type_dir in Parser.type_directives_names:
             if type_dir in args:
-                # если есть хоть одна директива начиная с `byte` и далее, то все операнды вынуждены приводиться к ней (самой меньшей)
+                # если есть хоть одна директива начиная с `byte` и далее,
+                # то все операнды вынуждены приводиться к ней (самой меньшей)
                 # или например если меньшая директива = `word`...
                 args = [arg for arg in args if arg not in Parser.type_directives_names]
                 directive_name = type_dir
@@ -702,8 +703,8 @@ def translate_stage_1(text, print_err):
                 if Parser.is_string(args[i]):
                     args[i] = str_to_hex(args[i], directive)
 
-                arg_is_number, arg_is_register, arg_is_label, arg_is_addressing = arg_is_number_register_label_or_addressing(
-                    args[i])
+                arg_is_number, arg_is_register, arg_is_label, arg_is_addressing = \
+                    arg_is_number_register_label_or_addressing(args[i])
 
                 arg_type = InstructionSet.form_arg_type(arg_is_number, arg_is_label, arg_is_register)
                 type_list_idx = i
@@ -879,7 +880,8 @@ def main(source, target, target_debug, print_err=False):
     ByteCodeFile.write(target, start_address, code)
     ByteCodeFile.write_debug(target_debug, start_address, code)
 
-    # print("Количество строк исходного кода: {}\nКоличество строк тела объектного файла: {}".format(len(source.split("\n")), len(code)))
+    # print("Количество строк исходного кода: {}".format(len(source.split("\n"))))
+    # print("Количество строк тела объектного файла: {}".format(len(code)))
 
 
 if __name__ == "__main__":

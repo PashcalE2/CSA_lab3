@@ -25,7 +25,7 @@ addopts = "--doctest-modules"
 log_format = "%(levelname)-7s %(module)s:%(funcName)-13s %(message)s"
 
 [tool.ruff]
-line-length = 120
+line-length = 128
 select = [
     # A set of chosen linter rules is specified here.
     # See https://beta.ruff.rs/docs/rules/ for more info.
