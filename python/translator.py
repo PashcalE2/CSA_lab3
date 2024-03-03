@@ -199,7 +199,7 @@ class Parser:
 
         class AddressOffsetError(MemoryAddressingError):
             def __init__(self, msg):
-                super().__init__("Ожидалось смещение адреса (число, регистр)".format(msg))
+                super().__init__("Ожидалось смещение адреса (число, регистр): {}".format(msg))
 
     @staticmethod
     def is_string(string):
@@ -319,8 +319,8 @@ class Parser:
     def try_find_dup(line: str):
         try:
             number, line = Parser.try_find_number(line)
-        except Parser.Exceptions.NumberError:
-            raise Parser.Exceptions.DupRepeatCountError(line)
+        except Parser.Exceptions.NumberError as e:
+            raise Parser.Exceptions.DupRepeatCountError(line) from e
 
         pos = 3
         if line[:pos] != "dup":
@@ -382,10 +382,9 @@ class Parser:
         if not found_one:
             raise Parser.Exceptions.DataDefinitionNoArgsError(line)
 
-        if len(line) > 0:
-            if line[0] == ",":
-                new_args, line = Parser.try_find_data_args(line[1:].lstrip(" "))
-                args.extend(new_args)
+        if len(line) > 0 and line[0] == ",":
+            new_args, line = Parser.try_find_data_args(line[1:].lstrip(" "))
+            args.extend(new_args)
 
         return args, line
 
@@ -475,25 +474,30 @@ class Parser:
 
     @staticmethod
     def try_find_address_base(line: str):
+        line_copy = line[:]
+
         try:
             number, line = Parser.try_find_number(line)
-            return number, line
         except Parser.Exceptions.NumberError:
             pass
+        else:
+            return number, line
 
         try:
             reg, line = Parser.try_find_register(line)
-            return reg, line
         except Parser.Exceptions.RegisterError:
             pass
+        else:
+            return reg, line
 
         try:
             label, line = Parser.try_find_label_name(line)
-            return label, line
         except Parser.Exceptions.LabelError:
             pass
+        else:
+            return label, line
 
-        raise Parser.Exceptions.AddressBaseError(line)
+        raise Parser.Exceptions.AddressBaseError(line_copy)
 
     @staticmethod
     def try_find_addressing_sign(line: str):
