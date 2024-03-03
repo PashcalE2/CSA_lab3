@@ -106,7 +106,7 @@ class InstructionPostfix:
     scale_factor_value_to_power: typing.ClassVar[dict] = {1: 0, 2: 1, 4: 2}
 
     @staticmethod
-    def encode_scale_factor_power(power: str):
+    def encode_scale_factor_power(power: int):
         return InstructionPostfix.scale_factor_value_to_power[power]
 
     @staticmethod

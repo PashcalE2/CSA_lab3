@@ -678,7 +678,7 @@ def encode_instruction_arg(directive_name, arg):
     else:
         has_offset = arg["offset"] is not None
         has_index = arg["index"] is not None
-        scale_factor = arg["scale_factor"] if arg["scale_factor"] is not None else 1
+        scale_factor = int(arg["scale_factor"]) if arg["scale_factor"] is not None else 1
         scale_factor = isa.InstructionPostfix.encode_scale_factor_power(scale_factor)
         offset_sign = (arg["offset_sign"] is not None) and (arg["offset_sign"] == "-")
         index_sign = (arg["index_sign"] is not None) and (arg["index_sign"] == "-")
