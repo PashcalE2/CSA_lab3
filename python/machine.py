@@ -1741,5 +1741,4 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     assert len(sys.argv) == 3, "Wrong arguments: p_machine.py <code_file> <input_file>"
     _, v1, v2 = sys.argv
-
     main(v1, v2)

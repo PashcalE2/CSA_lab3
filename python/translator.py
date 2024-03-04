@@ -534,7 +534,17 @@ class Parser:
     @staticmethod
     def try_find_array_index(line: str):
         sign, line = Parser.try_find_addressing_sign(line)
-        index, line = Parser.try_find_register(line)
+
+        try:
+            index, line = Parser.try_find_register(line)
+        except Parser.Exceptions.RegisterError:
+            index = None
+
+        try:
+            index, line = Parser.try_find_number(line)
+        except Parser.Exceptions.NumberError:
+            pass
+
         _, line = Parser.try_find_scale_sign(line)
         scale_factor, line = Parser.try_find_number(line)
 
@@ -980,7 +990,7 @@ class Translator:
         """
 
         # Первый свободный адрес, откуда по-умолчанию транслятор начинает пихать данные и код
-        mem_address = 0x0014
+        mem_address = 0x0020
         organize_address = 0
         organize_next = False
 
@@ -1108,5 +1118,4 @@ def main(source, target, target_debug, print_err=False):
 if __name__ == "__main__":
     assert len(sys.argv) == 4, "Wrong arguments: translator_asm.py <input_file> <target_file> <debug_file>"
     _, v1, v2, v3 = sys.argv
-
     main(v1, v2, v3)

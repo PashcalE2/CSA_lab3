@@ -1,0 +1,57 @@
+org 0
+for_write: word write_to_out
+
+org 0x100
+v1: dword 0, 1, -1, 1
+v2: dword 1, 1, 1, 1
+
+normal: byte 'Vectors are normal', 0
+not_normal: byte 'Vectors are not normal', 0
+
+start:
+    push v1
+    push v2
+    call vector.dot4       ; result in r1
+    pop r2
+    pop r2
+
+    mov r2, normal
+    cmp dword r1, 0
+    jz start.write
+    mov r2, not_normal
+
+start.write:
+    ei
+    push r2
+    call write
+    pop r2
+    halt
+
+vector.dot4:
+    mov r2, [sp + 2]
+    mov r3, [sp + 4]
+    mov r1, 0
+    lcomb dword r1, [r2], [r3], [r2+1*4], [r3+1*4], [r2+2*4], [r3+2*4], [r2+3*4], [r3+3*4]
+    ret
+
+write:
+    mov r7, [sp + 2] ; string base
+    mov r6, -1        ; counter
+.check:
+    inc r6
+    cmp byte [r7+r6], 0
+    jz write.ret
+    cmp byte [0x12], 0
+    jz write.check
+
+    ; out is ready
+    int 0
+    jmp write.check
+
+.ret:
+    ret
+
+write_to_out:
+    mov byte [0x13], [r7+r6]
+    mov byte [0x12], 0
+    iret

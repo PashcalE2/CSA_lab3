@@ -1,0 +1,40 @@
+Start address = 330
+Code lines count = 37 | 0x25
+<address> - <hex asm> - <mnemonic>
+0000 - 1 e2 - for_write: word write_to_out
+0100 - 0 0 0 0 0 0 0 1 ... ff ff ff 0 0 0 1 - v1: dword 0, 1, -1, 1
+0110 - 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 - v2: dword 1, 1, 1, 1
+0120 - 56 65 63 74 6f 7... 6f 72 6d 61 6c 0 - normal: byte 'Ve... s are normal', 0
+0133 - 56 65 63 74 6f 7... 6f 72 6d 61 6c 0 - not_normal: byte... e not normal', 0
+014a - 50 ff 1 0 - push v1
+014e - 50 ff 1 10 - push v2
+0152 - 51 ff 1 7a - call vector.dot4
+0156 - 71 82 - pop r2
+0158 - 71 82 - pop r2
+015a - 80 82 ff 1 20 - mov r2, normal
+015f - fd b0 81 ff 0 0 0 0 - cmp dword r1, 0
+0167 - 41 ff 1 70 - jz start.write
+016b - 80 82 ff 1 33 - mov r2, not_normal
+0170 - 6 - ei
+0171 - 50 82 - push r2
+0173 - 51 ff 1 b4 - call write
+0177 - 71 82 - pop r2
+0179 - 1 - halt
+017a - 80 82 41 80 ff 0 2 - mov r2, [sp+2]
+0181 - 80 83 41 80 ff 0 4 - mov r3, [sp+4]
+0188 - 80 81 ff 0 0 - mov r1, 0
+018d - fd c0 9 81 40 82... 0 3 4a 83 ff 0 3 - lcomb dword r1, ... 2+3*4], [r3+3*4]
+01b3 - 8 - ret
+01b4 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+01bb - 80 86 ff ff ff - mov r6, -1
+01c0 - 62 86 - inc r6
+01c2 - ff b0 41 87 86 ff 0 - cmp byte [r7+r6], 0
+01c9 - 41 ff 1 e1 - jz write.ret
+01cd - ff b0 40 ff 0 12 ff 0 - cmp byte [0x12], 0
+01d5 - 41 ff 1 c0 - jz write.check
+01d9 - 52 ff 0 0 - int 0
+01dd - 40 ff 1 c0 - jmp write.check
+01e1 - 8 - ret
+01e2 - ff 80 40 ff 0 13 41 87 86 - mov byte [0x13], [r7+r6]
+01eb - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+01f3 - 9 - iret
