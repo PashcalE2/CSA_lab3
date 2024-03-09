@@ -153,5 +153,5 @@ cython_debug/
 
 .fleet
 
-python/input/
-python/output/
+/python/input/
+/python/output/
