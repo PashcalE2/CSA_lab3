@@ -36,7 +36,7 @@ comment = ";" , characters ;
 
 operands = operand , { listing_separator , operand };
 
-operand = register | mem_addressing | complex_label ; 
+operand = [ data_type ] , ( register | mem_addressing | complex_label ) ; 
 
 mem_addressing = 
     "[" , mem_addressing_base , [ mem_addressing_index ] , [ mem_addressing_offset ] , "]" ;
