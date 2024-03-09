@@ -8,123 +8,111 @@
 
 ### Описание синтаксиса
 ```ebnf
-<asm_program> ::= 
-    <spaces> | 
-    <new_line> | 
-    <org> <empty_string> | 
-    <instruction> <empty_string> | 
-    <asm_program> <asm_program>
+asm_program = { [ org | data_definition | instruction ] , empty_string }
 
-<empty_string> ::= <new_line> | <spaces> <empty_string>
+empty_string = [ spaces ] , new_line ;
 
-<org> ::= org <spaces> <uint>
+org = org , spaces , uint ;
 
-<instruction> ::= 
-    <instruction_label> | 
-    <mnemonic> | 
-    <instruction_label> <spaces> <mnemonic> | 
-    <mnemonic> <spaces> <operands> | 
-    <instruction_label> <spaces> <mnemonic> <spaces> <operands> | 
-    <instruction> <spaces>? <comment> | 
-    <spaces> <instruction> 
+instruction = 
+  [ label , [ spaces ] ] , mnemonic , [ spaces , operands ] , [ [ spaces ] , comment ]
 
-<mnemonic> ::= 
-    halt | clc | cmc | ei | di |
-    ret | iret | not | neg | inc | 
-    dec | sxt | swab | <jumps> | loop |
-    push | pop | call | int | mov |
-    and | or | xor | add | adc |
-    sub | mul | div | mod | cmp |
-    swap
+mnemonic = 
+    "halt" | "clc" | "cmc" | "ei" | "di" |
+    "ret" | "iret" | "not" | "neg" | "inc" | 
+    "dec" | "sxt" | "swab" | jumps | "loop" |
+    "push" | "pop" | "call" | "int" | "mov" |
+    "and" | "or" | "xor" | "add" | "adc" |
+    "sub" | "mul" | "div" | "mod" | "cmp" | "swap" ;
     
     
-<jumps> ::=
-    jmp | je | jz | jne | jnz |
-    jg | jge | ja | jae | jl |
-    jle | jb | jc | jbe | js |
-    jns | jnc | jv | jnv
+jumps =
+    "jmp" | "je" | "jz" | "jne" | "jnz" |
+    "jg" | "jge" | "ja" | "jae" | "jl" |
+    "jle" | "jb" | "jc" | "jbe" | "js" |
+    "jns" | "jnc" | "jv" | "jnv" ;
 
-<comment> ::= ; <characters>
+comment = ";" , characters ;
 
-<operands> ::= <operand> | <operands> <listing_separator> <operand>
-<operand> ::= <register> | <mem_addressing> | <complex_label>
+operands = operand , { listing_separator , operand };
 
-<mem_addressing> ::= 
-    "[" <mem_addressing_base> "]" | 
-    "[" <mem_addressing_base> <mem_addressing_index> "]" | 
-    "[" <mem_addressing_base> <mem_addressing_index> <mem_addressing_offset> "]" | 
+operand = register | mem_addressing | complex_label ; 
 
-<mem_addressing_offset> ::=
-    <sign>? <register> |
-    <sign>? <uint>
+mem_addressing = 
+    "[" , mem_addressing_base , [ mem_addressing_index ] , [ mem_addressing_offset ] , "]" ;
 
-<mem_addressing_index> ::=
-    <sign>? <register> "*" <uint>
+mem_addressing_offset = [ sign ] , ( register | uint ) ;
 
-<sign> = "-" | "+"
+mem_addressing_index = [ sign ] , ( register | uint ) , "*" , uint ;
 
-<mem_addressing_base> ::= 
-    <register> | 
-    <number> 
+sign = "-" | "+" ;
 
-<variable> ::= <data_label> <spaces> <data_definition>
-<data_definition> ::= 
-    <data_array> | 
-    <dup_directive>
+mem_addressing_base = register | number ;
 
-<dup_directive> ::= <uint> <spaces> "dup" "(" <data_array> ")"
-<data_array> ::= <spaces>? <data_type> <spaces> <array_init>
-<data_type> ::= byte | word | dword
+data_definition = data_label , [ spaces ] , data_definition_without_label ;
+data_definition_without_label = data_array | dup_directive ;
 
-<array_init> ::= 
-    <int_sequence> | 
-    <string_sequence> | 
-    <array_init> <listing_separator> <array_init>
+dup_directive = uint , spaces , "dup" , "(" , data_array , ")" ;
+data_array = [ spaces ] , data_type , spaces , array_init ;
+data_type = "byte" | "word" | "dword" ;
 
-<int_sequence> ::= <int> | <int_sequence> <listing_separator> <int>
-<string_sequence> ::= <string> | <string_sequence> <listing_separator> <string>
-<listing_separator> ::= , | <spaces> , | , <spaces> | <spaces> , <spaces>
+array_init = 
+    ( int_sequence | string_sequence ) , { listing_separator , ( int_sequence | string_sequence ) }
 
-<label> ::= <complex_label> :
+int_sequence = int , { listing_separator , int } ;
+string_sequence = string , { listing_separator , string } ;
+listing_separator = [ spaces ] , "," , [ spaces ] ;
 
-<complex_label> ::= <single_label> | <complex_label> <relative_label>
-<relative_label> ::= . <single_label>
-<single_label> ::= <name_word> | _ <name_word>
+label = complex_label , ":" ;
 
-<general_register> ::= 
-    sp | 
-    r1 | 
-    r2 | 
-    r3 | 
-    r4 | 
-    r5 | 
-    r6 | 
-    r7
+complex_label = single_label , { relative_label };
+relative_label = "." , single_label ;
+single_label = [ "_" ] , name_word ;
 
-<string> ::= 
-    <single_quote> <character> <single_quote>
+general_register = "sp" | "r1" | "r2" | "r3" | "r4" | "r5" | "r6" | "r7" ;
 
-<name_word> ::= <letter> | <letter> <name_word> | <name_word> <letter> | <name_word> <dec_digit>
-<letter> ::= [a-zA-Z]
-<characters> ::= <character> | <characters> <character>
-<character> ::= [^\';]
-<single_quote> ::= "'"
+string = single_quote , character , single_quote ;
 
-<spaces> ::= <space> | <spaces> <space>
-<space> ::= " " | "\t"
-<new_line> ::= "\n"
+name_word = letter , { letter | dec_digit } ;
 
-<int> ::= <dec_int> | <hex_int>
-<uint> ::= <dec_uint> | <hex_uint>
+letter = 
+    "A" | "B" | "C" | "D" | "E" | "F" | "G" |
+    "H" | "I" | "J" | "K" | "L" | "M" | "N" |
+    "O" | "P" | "Q" | "R" | "S" | "T" | "U" |
+    "V" | "W" | "X" | "Y" | "Z" | "a" | "b" |
+    "c" | "d" | "e" | "f" | "g" | "h" | "i" |
+    "j" | "k" | "l" | "m" | "n" | "o" | "p" |
+    "q" | "r" | "s" | "t" | "u" | "v" | "w" |
+    "x" | "y" | "z" ;
+    
+characters = { character } ;
+character = <any except: "'", "\n"> ;
+single_quote = "'" ;
 
-<hex_int> ::= <hex_uint> |  <hex_uint>
-<hex_uint> ::= 0x <hex_uint_without_prefix> 
-<hex_uint_without_prefix> ::= <hex_digit> | <hex_digit> <hex_uint_without_prefix>
-<hex_digit> ::= [0-9a-fA-F]
+spaces = { space };
+space = " " | "\t" ;
+new_line = "\n" ;
 
-<dec_int> ::= <dec_uint> | "-" <dec_uint>
-<dec_uint> ::= <dec_digit> | <dec_digit> <dec_uint>
-<dec_digit> ::= [0-9]
+int = dec_int | hex_int ;
+uint = dec_uint | hex_uint ;
+
+hex_int = [ "-" ] hex_uint ;
+hex_uint = "0x" , hex_uint_without_prefix ;
+hex_uint_without_prefix = { hex_digit } ;
+hex_digit = 
+    "0" | "1" | "2" | "3" |
+    "4" | "5" | "6" | "7" |
+    "8" | "9" | "a" | "b" |
+    "c" | "d" | "e" | "f" |
+    "A" | "B" | "C" | "D" |
+    "E" | "F" ;
+
+dec_int = [ "-" ] dec_uint ;
+dec_uint = { dec_digit } ;
+dec_digit = 
+    "0" | "1" | "2" | "3" |
+    "4" | "5" | "6" | "7" |
+    "8" | "9" ;
 ```
 
 ### Описание семантики
