@@ -28,7 +28,7 @@ class Exceptions:
 
 class Device:
     def __init__(self, buffer: list):
-        self.ready = 1
+        self.ready = 0
         self.current_time = 0
         self.buffer = buffer
 
@@ -39,7 +39,7 @@ class Device:
         return self.buffer
 
 
-class InputDevice(Device):
+class InputDeviceInterface(Device):
     def __init__(self, input_buffer: list):
         super().__init__(input_buffer)
         self.current_token = 0
@@ -59,7 +59,7 @@ class InputDevice(Device):
         if self.current_token >= len(self.buffer):
             return 0
 
-        token = 20
+        token = ord(" ")
         if self.ready:
             time, token = self.buffer[self.current_token]
             self.current_token += 1
@@ -67,10 +67,9 @@ class InputDevice(Device):
         return token
 
 
-class OutputDevice(Device):
+class OutputDeviceInterface(Device):
     def __init__(self, output_buffer: list):
         super().__init__(output_buffer)
-        self.ready = 0
 
     def add_token(self, token: int):
         if self.ready == 0:
@@ -86,12 +85,6 @@ class OutputDevice(Device):
             self.ready = 0
         else:
             self.ready = 1
-
-
-class DeviceMux:
-    def __init__(self):
-        self.data = 0
-        self.max_uint = 0xFF
 
 
 class ALU:
@@ -356,45 +349,49 @@ class AddressCodeDecoder:
 
     def signal_read(self):
         address = self.data_path.address_register.get_value()
+        data = 0
         if 0x10 <= address < 0x14:
             # Устройства ввода вывода
             is_status_byte = (address & 1) == 0
             if address < 0x12:
                 # Устройство ввода
                 if is_status_byte:
-                    self.data_path.input_device_mux.data = self.data_path.input_device.ready
+                    data = self.data_path.input_device.ready
                 else:
-                    self.data_path.input_device_mux.data = self.data_path.input_device.get_current_token()
+                    data = self.data_path.input_device.get_current_token()
             else:
                 # Устройство вывода
                 if is_status_byte:
-                    self.data_path.input_device_mux.data = self.data_path.output_device.ready
+                    data = self.data_path.output_device.ready
                 else:
                     pass
         else:
             # Устройство памяти
-            self.data_path.input_device_mux.data = self.data_path.memory[address]
+            data = self.data_path.memory[address]
+        self.data_path.data_register.set_byte(data)
 
     def signal_write(self):
         address = self.data_path.address_register.get_value()
+        data = self.data_path.data_register.get_byte()
         if 0x10 <= address < 0x14:
             # Устройства ввода вывода
             is_status_byte = (address & 1) == 0
             if address < 0x12:
                 # Устройство ввода
                 if is_status_byte:
-                    self.data_path.input_device.ready = self.data_path.output_device_mux.data
+                    self.data_path.input_device.ready = data
                 else:
+                    # нельзя писать в данные ввода
                     pass
             else:
                 # Устройство вывода
                 if is_status_byte:
-                    self.data_path.output_device.ready = 0
+                    self.data_path.output_device.ready = data
                 else:
-                    self.data_path.output_device.add_token(self.data_path.output_device_mux.data)
+                    self.data_path.output_device.add_token(data)
         else:
             # Устройство памяти
-            self.data_path.memory[address] = self.data_path.output_device_mux.data + 0
+            self.data_path.memory[address] = data
 
 
 class DataPath:
@@ -458,8 +455,6 @@ class DataPath:
         # Другие участки схемы
         self.alu = ALU(self)
         self.address_code_decoder = AddressCodeDecoder(self)
-        self.input_device_mux = DeviceMux()
-        self.output_device_mux = DeviceMux()
 
     def signal_latch_r1(self):
         self.r1.set_value(self.alu.get_result())
@@ -547,10 +542,8 @@ class DataPath:
 
     def signal_read(self):
         self.address_code_decoder.signal_read()
-        self.data_register.set_from_input(self.input_device_mux.data, self.input_device_mux.max_uint)
 
     def signal_write(self):
-        self.output_device_mux.data = self.data_register.get_byte()
         self.address_code_decoder.signal_write()
 
 
@@ -1646,8 +1639,8 @@ def simulation(start_address: int, code: list, input_schedule: list, limit: int)
     - инструкцией `Halt`, через исключение `StopIteration`.
     """
 
-    input_device = InputDevice(input_schedule)
-    output_device = OutputDevice([])
+    input_device = InputDeviceInterface(input_schedule)
+    output_device = OutputDeviceInterface([])
 
     data_path = DataPath(start_address, code, input_device, output_device)
     control_unit = ControlUnit(data_path)
@@ -1739,6 +1732,7 @@ def main(code_file, input_file):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
-    assert len(sys.argv) == 3, "Wrong arguments: p_machine.py <code_file> <input_file>"
-    _, v1, v2 = sys.argv
+    #assert len(sys.argv) == 3, "Wrong arguments: p_machine.py <code_file> <input_file>"
+    #_, v1, v2 = sys.argv
+    v1, v2 = "byte_code/cat.o", "input/cat.txt"
     main(v1, v2)

@@ -1116,6 +1116,7 @@ def main(source, target, target_debug, print_err=False):
 
 
 if __name__ == "__main__":
-    assert len(sys.argv) == 4, "Wrong arguments: translator_asm.py <input_file> <target_file> <debug_file>"
-    _, v1, v2, v3 = sys.argv
+    #assert len(sys.argv) == 4, "Wrong arguments: translator_asm.py <input_file> <target_file> <debug_file>"
+    #_, v1, v2, v3 = sys.argv
+    v1, v2, v3 = "asm/hello_user_name.txt", "byte_code/hello_user_name.o", "byte_code/hello_user_name.o.debug"
     main(v1, v2, v3)

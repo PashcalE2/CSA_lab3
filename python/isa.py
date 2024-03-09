@@ -447,8 +447,8 @@ class DataRegister(Register):
     def __init__(self, name, code, byte_size, is_left):
         super().__init__(name, code, byte_size, is_left)
 
-    def set_from_input(self, value, io_data_max_uint):
-        self.value = (self.value & (self.max_uint - io_data_max_uint)) | value
+    def set_byte(self, value):
+        self.value = (self.value & (self.max_uint - 0xFF)) | value
 
     def get_byte(self):
         return self.value & 0xFF

@@ -3,7 +3,7 @@ v0_input: word write_handler
 v1_output: word read_handler
 
 org 0x20
-msg1: byte 'Whats your name? ',0
+msg1: byte 'Whats your name?', 10, 0
 msg2: byte 'Hello, ',0
 msg3: byte '!',0
 

@@ -1,0 +1,83 @@
+Start address = 4096
+Code lines count = 80 | 0x50
+<address> - <hex asm> - <mnemonic>
+0000 - 10 e7 - v0_input: word write_handler
+0002 - 11 2d - v1_output: word read_handler
+0020 - 57 68 61 74 73 2...  61 6d 65 3f a 0 - msg1: byte 'What... ur name?', 10, 0
+0032 - 48 65 6c 6c 6f 2c 20 0 - msg2: byte 'Hello, ', 0
+003a - 21 0 - msg3: byte '!', 0
+003c - 0 - current: byte 0
+003d - 0 0 0 0 0 0 0 0 ...  0 0 0 0 0 0 0 0 - output_str: byte... 0, 0, 0, 0, 0, 0
+1000 - 6 - ei
+1001 - 50 ff 0 3d - push output_str
+1005 - 50 ff 0 20 - push msg1
+1009 - 51 ff 10 82 - call add_to_str
+100d - ff a0 40 ff 0 3c 81 - add byte [current], r1
+1014 - 71 81 - pop r1
+1016 - 71 81 - pop r1
+1018 - 80 81 ff 0 3d - mov r1, output_str
+101d - ff a0 81 40 ff 0 3c - add byte r1, [current]
+1024 - 50 81 - push r1
+1026 - 50 ff 0 32 - push msg2
+102a - 51 ff 10 82 - call add_to_str
+102e - ff a0 40 ff 0 3c 81 - add byte [current], r1
+1035 - 71 81 - pop r1
+1037 - 71 81 - pop r1
+1039 - 80 81 ff 0 3d - mov r1, output_str
+103e - ff a0 81 40 ff 0 3c - add byte r1, [current]
+1045 - 50 81 - push r1
+1047 - 51 ff 10 f9 - call read
+104b - 63 81 - dec r1
+104d - ff a0 40 ff 0 3c 81 - add byte [current], r1
+1054 - 71 81 - pop r1
+1056 - 80 81 ff 0 3d - mov r1, output_str
+105b - ff a0 81 40 ff 0 3c - add byte r1, [current]
+1062 - 50 81 - push r1
+1064 - 50 ff 0 3a - push msg3
+1068 - 51 ff 10 82 - call add_to_str
+106c - ff a0 40 ff 0 3c 81 - add byte [current], r1
+1073 - 71 81 - pop r1
+1075 - 71 81 - pop r1
+1077 - 50 ff 0 3d - push output_str
+107b - 51 ff 10 b1 - call write
+107f - 71 81 - pop r1
+1081 - 1 - halt
+1082 - 80 87 41 80 ff 0 4 - mov r7, [sp+4]
+1089 - 80 86 41 80 ff 0 2 - mov r6, [sp+2]
+1090 - 80 85 ff 0 0 - mov r5, 0
+1095 - ff b0 41 86 85 ff 0 - cmp byte [r6+r5], 0
+109c - 41 ff 10 ad - jz add_to_str.ret
+10a0 - 80 41 87 85 41 86 85 - mov [r7+r5], [r6+r5]
+10a7 - 62 85 - inc r5
+10a9 - 40 ff 10 95 - jmp add_to_str.loop
+10ad - 80 81 85 - mov r1, r5
+10b0 - 8 - ret
+10b1 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+10b8 - 80 86 ff 0 0 - mov r6, 0
+10bd - ff 80 81 40 ff 0 12 - mov byte r1, [0x12]
+10c4 - ff b0 81 ff 0 - cmp byte r1, 0
+10c9 - 42 ff 10 d1 - jne write.int
+10cd - 40 ff 10 bd - jmp write.wait
+10d1 - 52 ff 0 0 - int 0
+10d5 - ff b0 41 87 86 ff 0 - cmp byte [r7+r6], 0
+10dc - 41 ff 10 e6 - jz write.ret
+10e0 - 62 86 - inc r6
+10e2 - 42 ff 10 bd - jne write.wait
+10e6 - 8 - ret
+10e7 - ff 80 40 ff 0 13 41 86 87 - mov byte [0x13], [r6+r7]
+10f0 - ff 80 40 ff 0 12 ff 0 - mov byte [0x12], 0
+10f8 - 9 - iret
+10f9 - 80 87 41 80 ff 0 2 - mov r7, [sp+2]
+1100 - 80 86 ff 0 0 - mov r6, 0
+1105 - ff b0 40 ff 0 10 ff 0 - cmp byte [0x10], 0
+110d - 41 ff 11 5 - jz read.wait
+1111 - 52 ff 0 1 - int 1
+1115 - 62 86 - inc r6
+1117 - ff b0 53 87 86 ff 0 1 ff 0 - cmp byte [r7+r6*1-1], 0
+1121 - 41 ff 11 29 - jz read.ret
+1125 - 40 ff 11 5 - jmp read.wait
+1129 - 80 81 86 - mov r1, r6
+112c - 8 - ret
+112d - ff 80 41 87 86 40 ff 0 11 - mov byte [r7+r6], [0x11]
+1136 - ff 80 40 ff 0 10 ff 0 - mov byte [0x10], 0
+113e - 9 - iret
