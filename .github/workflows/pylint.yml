@@ -39,8 +39,6 @@ jobs:
 
       - name: Run tests and collect coverage
         run: |
-          echo "Current directory items:"
-          echo *
           poetry run coverage run -m pytest .
           poetry run coverage report -m
         env:

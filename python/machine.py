@@ -349,49 +349,47 @@ class AddressCodeDecoder:
 
     def signal_read(self):
         address = self.data_path.address_register.get_value()
-        data = 0
         if 0x10 <= address < 0x14:
             # Устройства ввода вывода
             is_status_byte = (address & 1) == 0
             if address < 0x12:
                 # Устройство ввода
                 if is_status_byte:
-                    data = self.data_path.input_device.ready
+                    self.data_path.data_register.set_byte(self.data_path.input_device.ready)
                 else:
-                    data = self.data_path.input_device.get_current_token()
+                    self.data_path.data_register.set_byte(self.data_path.input_device.get_current_token())
             else:
                 # Устройство вывода
                 if is_status_byte:
-                    data = self.data_path.output_device.ready
+                    self.data_path.data_register.set_byte(self.data_path.output_device.ready)
                 else:
+                    # нельзя читать буфер вывода
                     pass
         else:
             # Устройство памяти
-            data = self.data_path.memory[address]
-        self.data_path.data_register.set_byte(data)
+            self.data_path.data_register.set_byte(self.data_path.memory[address])
 
     def signal_write(self):
         address = self.data_path.address_register.get_value()
-        data = self.data_path.data_register.get_byte()
         if 0x10 <= address < 0x14:
             # Устройства ввода вывода
             is_status_byte = (address & 1) == 0
             if address < 0x12:
                 # Устройство ввода
                 if is_status_byte:
-                    self.data_path.input_device.ready = data
+                    self.data_path.input_device.ready = self.data_path.data_register.get_byte()
                 else:
                     # нельзя писать в данные ввода
                     pass
             else:
                 # Устройство вывода
                 if is_status_byte:
-                    self.data_path.output_device.ready = data
+                    self.data_path.output_device.ready = self.data_path.data_register.get_byte()
                 else:
-                    self.data_path.output_device.add_token(data)
+                    self.data_path.output_device.add_token(self.data_path.data_register.get_byte())
         else:
             # Устройство памяти
-            self.data_path.memory[address] = data
+            self.data_path.memory[address] = self.data_path.data_register.get_byte()
 
 
 class DataPath:
