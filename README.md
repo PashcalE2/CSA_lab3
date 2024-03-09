@@ -85,11 +85,11 @@ letter =
     "q" | "r" | "s" | "t" | "u" | "v" | "w" |
     "x" | "y" | "z" ;
     
-characters = { character } ;
+characters = character , { character } ;
 character = <any except: "'", "\n"> ;
 single_quote = "'" ;
 
-spaces = { space };
+spaces = space , { space };
 space = " " | "\t" ;
 new_line = "\n" ;
 
@@ -98,7 +98,7 @@ uint = dec_uint | hex_uint ;
 
 hex_int = [ "-" ] hex_uint ;
 hex_uint = "0x" , hex_uint_without_prefix ;
-hex_uint_without_prefix = { hex_digit } ;
+hex_uint_without_prefix = hex_digit , { hex_digit } ;
 hex_digit = 
     "0" | "1" | "2" | "3" |
     "4" | "5" | "6" | "7" |
@@ -108,7 +108,7 @@ hex_digit =
     "E" | "F" ;
 
 dec_int = [ "-" ] dec_uint ;
-dec_uint = { dec_digit } ;
+dec_uint = dec_digit , { dec_digit } ;
 dec_digit = 
     "0" | "1" | "2" | "3" |
     "4" | "5" | "6" | "7" |
