@@ -464,7 +464,7 @@ AddressCodeDecoder -- получает на вход сигналы чтения
 
 ### DataPath
 
-![Схема](schemas/data_path.png)
+![Схема](schemas/data_path_v2.png)
 
 Реализован в классе `DataPath`.
 
